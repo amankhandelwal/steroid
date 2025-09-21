@@ -15,10 +15,60 @@ Okay now we want to enhance our chrome extension. We want to improve accessibili
 
 
 # Technical requirements
-*TODO*
+-   **Keyboard Navigation:**
+    -   Manage `activeItemIndex` state in `CommandPalette.tsx` to track the currently highlighted item.
+    -   Implement a `useEffect` hook for a global `keydown` listener within `CommandPalette.tsx` to handle `ArrowUp`, `ArrowDown`, `Enter`, and `` ` `` (Tilde) key presses.
+    -   Ensure `event.preventDefault()` is called for navigation keys to prevent default browser behavior (e.g., page scrolling).
+    -   Logic to highlight the first item by default when the palette opens or search results change.
+    -   Logic to reset `activeItemIndex` and refocus the input field when a non-navigation key is pressed.
+
+-   **Special Actions/Commands:**
+    -   **Command Parsing:** Develop a robust utility function or custom hook to parse the input query, identifying if it's a command (e.g., `close`, `google`, `youtube`) or a standard tab search.
+    -   **Configurable Search Engines:**
+        -   Create a new configuration file (e.g., `src/config/searchEngines.json`) to define custom search engine patterns and URLs.
+        -   Modify `CommandPalette.tsx` to read and utilize this configuration.
+        -   Extend `background.ts` to handle dynamic `OPEN_URL` requests based on these configurations.
+    -   **`Close Duplicate`:** Implement logic in `background.ts` using `chrome.tabs.query` and `chrome.tabs.remove` to identify and close duplicate tabs. The `CommandPalette` will send a message to trigger this action.
+    -   **`Close {query}`:** Enhance `CommandPalette.tsx` to filter tabs based on the provided query and allow selection/closure of those tabs.
+
+-   **Tab Completion/Suggestions:**
+    -   Extend the `searchResults` logic in `CommandPalette.tsx` to include command suggestions (e.g., `Close Duplicate`, `Google`, `Youtube`) alongside tab results.
+    -   Implement `Tab` key handling to auto-complete commands or cycle through suggestions.
 
 # Gemini's Execution Plan
-*TODO*
+1.  **Phase 1: Keyboard Navigation Core**
+    *   Implement `activeItemIndex` state in `CommandPalette.tsx` to manage item highlighting.
+    *   Add a `useEffect` hook for a global `keydown` listener within `CommandPalette.tsx`.
+    *   Handle `ArrowUp` and `ArrowDown` to change `activeItemIndex`.
+    *   Highlight the item corresponding to `activeItemIndex`.
+    *   Implement `Enter` key to trigger `handleItemClick` for the active item.
+    *   Implement Tilde (`` ` ``) key to trigger `handleCloseTab` for the active item.
+    *   Ensure `event.preventDefault()` for navigation keys to prevent page scrolling.
+
+2.  **Phase 2: Input Refocus & Typing Interruption**
+    *   Modify the `keydown` listener to detect non-navigation key presses.
+    *   On non-navigation key press, reset `activeItemIndex` to 0 and refocus the input field.
+
+3.  **Phase 3: Advanced Command Parsing & Suggestions**
+    *   **Command Parser:** Create `src/utils/commandParser.ts` to parse the input query into command types and arguments.
+    *   **Configurable Search Engines:**
+        *   Create `src/config/searchEngines.json` with default Google and YouTube configurations.
+        *   Modify `CommandPalette.tsx` to load and use this config.
+        *   Update `searchResults` to generate search engine action items based on parsed commands.
+    *   **Command Suggestions:** Extend `searchResults` to include command suggestions (e.g., `Close Duplicate`, `Google`, `Youtube`) based on the current query.
+
+4.  **Phase 4: Implementing New Actions**
+    *   **`Close Duplicate`:**
+        *   Add `CLOSE_DUPLICATE_TABS` message type.
+        *   Implement handler in `background.ts` to find and close duplicate tabs.
+        *   Add `Close Duplicate` action to `CommandPalette.tsx` and integrate with `commandParser`.
+    *   **`Close {query}`:**
+        *   Modify `commandParser` to identify `Close {query}` command.
+        *   Implement logic in `CommandPalette.tsx` to filter tabs based on `{query}` and allow selection/closure.
+
+5.  **Phase 5: Refinement & Tab Completion**
+    *   Refine UI/UX for command suggestions and active item styling (e.g., scroll into view).
+    *   Implement `Tab` key handling in `CommandPalette.tsx` to auto-complete commands or cycle through suggestions, updating the input `query` state accordingly.
 
 # Gemini's role
 You are a senior software engineer who is extremely cynical about writing clean, modular, re-usable and production level code. 
