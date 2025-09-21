@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import CommandPalette from './components/CommandPalette';
 
 /**
@@ -7,8 +7,46 @@ import CommandPalette from './components/CommandPalette';
  */
 function App() {
   const [isOpen, setIsOpen] = useState(false);
+  const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
+  const [previousTabDetails, setPreviousTabDetails] = useState<{ title: string; url: string } | null>(null);
+  const [tabAccessTimes, setTabAccessTimes] = useState<Record<number, number>>({});
+  const [tabGroups, setTabGroups] = useState<chrome.tabGroups.TabGroup[]>([]);
 
   const handleClose = () => setIsOpen(false);
+
+  const fetchAllData = useCallback(() => {
+    chrome.runtime.sendMessage({ type: 'GET_TABS' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error fetching tabs:', chrome.runtime.lastError.message);
+        return;
+      }
+      setTabs(response || []);
+    });
+
+    chrome.runtime.sendMessage({ type: 'GET_PREVIOUS_TAB_DETAILS' }, (response) => {
+      if (response && response.success) {
+        setPreviousTabDetails({ title: response.tabTitle || 'Untitled', url: response.tabUrl || '' });
+      } else {
+        setPreviousTabDetails(null);
+      }
+    });
+
+    chrome.runtime.sendMessage({ type: 'GET_TAB_ACCESS_TIMES' }, (response) => {
+      if (response && response.success) {
+        setTabAccessTimes(response.accessTimes);
+      } else {
+        console.error('Error fetching tab access times:', response.message);
+      }
+    });
+
+    chrome.runtime.sendMessage({ type: 'GET_TAB_GROUPS' }, (response) => {
+      if (response && response.success) {
+        setTabGroups(response.tabGroups);
+      } else {
+        console.error('Error fetching tab groups:', response.message);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     let lastShiftPress = 0;
@@ -21,6 +59,7 @@ function App() {
         if (now - lastShiftPress < 300) {
           console.log('Double Shift detected, calling setIsOpen(true)'); // ADDED FOR DEBUGGING
           setIsOpen(true);
+          fetchAllData(); // Fetch data when palette opens
         }
         lastShiftPress = now;
       } else if (event.key === 'Escape') {
@@ -35,11 +74,20 @@ function App() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []); // Empty dependency array means this effect runs once on mount
+  }, [fetchAllData]); // fetchAllData is a dependency
 
   return (
     <>
-      {isOpen && <CommandPalette onClose={handleClose} />}
+      {isOpen && (
+        <CommandPalette
+          onClose={handleClose}
+          tabs={tabs}
+          previousTabDetails={previousTabDetails}
+          tabAccessTimes={tabAccessTimes}
+          tabGroups={tabGroups}
+          fetchTabs={fetchAllData} // Pass fetchAllData as fetchTabs prop
+        />
+      )}
     </>
   );
 }

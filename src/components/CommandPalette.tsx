@@ -26,56 +26,92 @@ type SearchResultItem = TabItem | ActionItem | CloseTabActionItem;
 
 interface CommandPaletteProps {
   onClose: () => void;
+  tabs: chrome.tabs.Tab[];
+  previousTabDetails: { title: string; url: string } | null;
+  tabAccessTimes: Record<number, number>;
+  tabGroups: chrome.tabGroups.TabGroup[];
+  fetchTabs: () => void; // Callback to re-fetch tabs from App.tsx
 }
 
-const CommandPalette = ({ onClose }: CommandPaletteProps) => {
+const CommandPalette = ({
+  onClose,
+  tabs,
+  previousTabDetails,
+  tabAccessTimes,
+  tabGroups,
+  fetchTabs,
+}: CommandPaletteProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
   const [query, setQuery] = useState('');
   const [activeItemIndex, setActiveItemIndex] = useState(0);
-  const [previousTabDetails, setPreviousTabDetails] = useState<{ title: string; url: string } | null>(null);
-  const [tabAccessTimes, setTabAccessTimes] = useState<Record<number, number>>({});
   const [commandMode, setCommandMode] = useState<boolean>(false);
   const [activeCommand, setActiveCommand] = useState<CommandType | null>(null);
   const [selectedTabIds, setSelectedTabIds] = useState<Set<number>>(new Set());
-  const [tabGroups, setTabGroups] = useState<chrome.tabGroups.TabGroup[]>([]);
 
-  const fetchTabs = useCallback(() => {
-    chrome.runtime.sendMessage({ type: 'GET_TABS' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error fetching tabs:', chrome.runtime.lastError.message);
-        return;
-      }
-      setTabs(response || []);
-    });
-  }, []);
+  const commandSuggestions = useMemo((): ActionItem[] => [
+    {
+      type: 'action',
+      id: 'previous-tab-suggest',
+      title: 'Previous Tab',
+      action: () => chrome.runtime.sendMessage({ type: 'SWITCH_TO_PREVIOUS_TAB' }, (response) => {
+        if (response && response.success) {
+          console.log(`Switched to previous tab: ${response.tabId}`);
+        } else {
+          console.error('Error switching to previous tab:', response.message);
+        }
+      })
+    },
+    {
+      type: 'action',
+      id: 'close-duplicate-suggest',
+      title: 'Close Duplicate Tabs',
+      action: () => chrome.runtime.sendMessage({ type: 'CLOSE_DUPLICATE_TABS' }, (response) => {
+        if (response && response.success) {
+          console.log(`Closed ${response.closedCount} duplicate tabs.`);
+          fetchTabs(); // Re-fetch tabs to update UI
+        }
+      })
+    },
+    {
+      type: 'action',
+      id: 'google-suggest',
+      title: 'Google Search',
+      action: () => setQuery('g ')
+    },
+    {
+      type: 'action',
+      id: 'youtube-suggest',
+      title: 'YouTube Search',
+      action: () => setQuery('y ')
+    },
+    {
+      type: 'action',
+      id: 'close-suggest',
+      title: 'Close Tab(s)',
+      action: () => setQuery('close ')
+    },
+    {
+      type: 'action',
+      id: 'open-url-suggest',
+      title: 'Open URL',
+      action: () => setQuery('http://')
+    },
+    {
+      type: 'action',
+      id: 'create-tab-group-suggest',
+      title: 'Create Tab Group',
+      action: () => setQuery('create tab group')
+    },
+    {
+      type: 'action',
+      id: 'delete-tab-group-suggest',
+      title: 'Delete Tab Group',
+      action: () => setQuery('delete tab group')
+    }
+  ], [fetchTabs]);
 
-  // Fetch previous tab details and tab access times on mount
-  useEffect(() => {
-    chrome.runtime.sendMessage({ type: 'GET_PREVIOUS_TAB_DETAILS' }, (response) => {
-      if (response && response.success) {
-        setPreviousTabDetails({ title: response.tabTitle || 'Untitled', url: response.tabUrl || '' });
-      } else {
-        setPreviousTabDetails(null);
-      }
-    });
-
-    chrome.runtime.sendMessage({ type: 'GET_TAB_ACCESS_TIMES' }, (response) => {
-      if (response && response.success) {
-        setTabAccessTimes(response.accessTimes);
-      } else {
-        console.error('Error fetching tab access times:', response.message);
-      }
-    });
-
-    chrome.runtime.sendMessage({ type: 'GET_TAB_GROUPS' }, (response) => {
-      if (response && response.success) {
-        setTabGroups(response.tabGroups);
-      } else {
-        console.error('Error fetching tab groups:', response.message);
-      }
-    });
-  }, []);
+  // No need for fetchTabs useCallback here, it's passed as a prop
+  // No need for useEffect to fetch data on mount, data is passed as props
 
   const fuse = useMemo(() => {
     const searchableItems: (TabItem | ActionItem)[] = [
@@ -85,89 +121,50 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         id: `group-${group.id}`,
         title: group.title || 'Untitled Group',
         action: () => { /* No direct action on search result click for groups */ }
+      })),
+      ...commandSuggestions.map(cmd => ({
+        type: 'action',
+        id: cmd.id,
+        title: cmd.title,
+        action: cmd.action
       }))
     ];
+    console.log('Fuse searchableItems:', searchableItems);
     return new Fuse(searchableItems, { keys: ['title', 'url'], includeScore: true, threshold: 0.4 });
-  }, [tabs, tabGroups]);
+  }, [tabs, tabGroups, commandSuggestions]);
 
   const searchResults = useMemo((): SearchResultItem[] => {
     const parsedCommand = parseCommand(query);
     let results: SearchResultItem[] = [];
+    console.log('Parsed Command:', parsedCommand);
 
-    // Define all possible command suggestions
-    const commandSuggestions: ActionItem[] = [
-      // Previous Tab Command
-      ...(previousTabDetails ? [{
-        type: 'action',
-        id: 'previous-tab-suggest',
-        title: `Previous Tab > ${previousTabDetails.title}`,
-        action: () => chrome.runtime.sendMessage({ type: 'SWITCH_TO_PREVIOUS_TAB' }, (response) => {
-          if (response && response.success) {
-            console.log(`Switched to previous tab: ${response.tabId}`);
-          } else {
-            console.error('Error switching to previous tab:', response.message);
-          }
-        })
-      }] : []),
-      {
-        type: 'action',
-        id: 'close-duplicate-suggest',
-        title: 'Close Duplicate Tabs',
-        action: () => chrome.runtime.sendMessage({ type: 'CLOSE_DUPLICATE_TABS' }, (response) => {
-          if (response && response.success) {
-            console.log(`Closed ${response.closedCount} duplicate tabs.`);
-            fetchTabs(); // Re-fetch tabs to update UI
-          }
-        })
-      },
-      {
-        type: 'action',
-        id: 'google-suggest',
-        title: 'Google Search',
-        action: () => setQuery('g ')
-      },
-      {
-        type: 'action',
-        id: 'youtube-suggest',
-        title: 'YouTube Search',
-        action: () => setQuery('y ')
-      },
-      {
-        type: 'action',
-        id: 'close-suggest',
-        title: 'Close Tab(s)',
-        action: () => setQuery('close ')
-      },
-      {
-        type: 'action',
-        id: 'open-url-suggest',
-        title: 'Open URL',
-        action: () => setQuery('http://')
-      },
-      {
-        type: 'action',
-        id: 'create-tab-group-suggest',
-        title: 'Create Tab Group',
-        action: () => setQuery('create tab group')
-      },
-      {
-        type: 'action',
-        id: 'delete-tab-group-suggest',
-        title: 'Delete Tab Group',
-        action: () => setQuery('delete tab group')
+    // If no query and not in command mode, show tabs sorted by last accessed time
+    if (!query.trim() && !commandMode) {
+      const sortedTabs = [...tabs].sort((a, b) => {
+        const timeA = tabAccessTimes[a.id!] || 0;
+        const timeB = tabAccessTimes[b.id!] || 0;
+        return timeB - timeA; // Descending order (most recent first)
+      });
+      return sortedTabs.map((tab) => ({ type: 'tab', tab }));
+    } else if (!query.trim() && commandMode) {
+      // If no query but in command mode, show relevant items for the active command
+      if (activeCommand === 'close' || activeCommand === 'createTabGroup') {
+        return tabs.map(tab => ({
+          type: activeCommand === 'close' ? 'closeTabAction' : 'tab',
+          tab: tab,
+          title: activeCommand === 'close' ? `Close: ${tab.title}` : tab.title
+        }));
+      } else if (activeCommand === 'deleteTabGroup') {
+        return tabGroups.map(group => ({
+          type: 'action',
+          id: `group-${group.id}`,
+          title: `Group: ${group.title || 'Untitled Group'}`,
+          action: () => { /* No direct action on search result click for groups */ }
+        }));
       }
-    ];
-
-    // Filter command suggestions based on query
-    const filteredCommandSuggestions = commandSuggestions.filter(cmd =>
-      cmd.title.toLowerCase().includes(query.toLowerCase())
-    );
-
-    // Add command suggestions to results if query is not a specific command yet and query is not empty
-    if ((parsedCommand.type === 'tabSearch' || parsedCommand.type === 'openUrl') && query.trim().length > 0) { // Only show suggestions if not already a specific command
-      results.push(...filteredCommandSuggestions);
     }
 
+    // Handle specific command types that might override or augment fuzzy search
     switch (parsedCommand.type) {
       case 'google':
       case 'youtube':
@@ -197,60 +194,10 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           });
         }
         break;
-      case 'previousTab':
-        results.push({
-          type: 'action',
-          id: 'previous-tab',
-          title: `Previous Tab > ${previousTabDetails?.title || ''}`,
-          action: () => chrome.runtime.sendMessage({ type: 'SWITCH_TO_PREVIOUS_TAB' }, (response) => {
-            if (response && response.success) {
-              console.log(`Switched to previous tab: ${response.tabId}`);
-            } else {
-              console.error('Error switching to previous tab:', response.message);
-            }
-          })
-        });
-        break;
-      case 'closeDuplicate':
-        results.push({
-          type: 'action',
-          id: 'close-duplicate',
-          title: 'Close Duplicate Tabs',
-          action: () => chrome.runtime.sendMessage({ type: 'CLOSE_DUPLICATE_TABS' }, (response) => {
-            if (response && response.success) {
-              console.log(`Closed ${response.closedCount} duplicate tabs.`);
-              fetchTabs(); // Re-fetch tabs to update UI
-            }
-          })
-        });
-        break;
-      case 'createTabGroup':
-        results.push({
-          type: 'action',
-          id: 'create-tab-group',
-          title: 'Create Tab Group',
-          action: () => {
-            setCommandMode(true);
-            setActiveCommand('createTabGroup');
-            setQuery(''); // Clear query for contextual search
-          }
-        });
-        break;
-      case 'deleteTabGroup':
-        results.push({
-          type: 'action',
-          id: 'delete-tab-group',
-          title: 'Delete Tab Group',
-          action: () => {
-            setCommandMode(true);
-            setActiveCommand('deleteTabGroup');
-            setQuery(''); // Clear query for contextual search
-          }
-        });
-        break;
       case 'close':
+        // In 'close' command mode, or if 'close' command is typed, show closable tabs
         if (parsedCommand.query) {
-          const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item);
+          const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item).filter(item => item.type === 'tab').map(item => (item as TabItem).tab);
           results.push(...filteredTabs.map(tab => ({
             type: 'closeTabAction',
             tab: tab,
@@ -265,65 +212,75 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           })));
         }
         break;
-      case 'tabSearch':
+      case 'previousTab':
+      case 'closeDuplicate':
+      case 'createTabGroup':
+      case 'deleteTabGroup':
+        // These commands are handled by fuzzy search now, but if directly typed, ensure they appear
+        const directCommandMatch = commandSuggestions.find(cmd => cmd.id.includes(parsedCommand.type));
+        if (directCommandMatch) {
+          // If it's the previousTab command, update its title dynamically
+          if (directCommandMatch.id === 'previous-tab-suggest' && previousTabDetails) {
+            results.push({
+              ...directCommandMatch,
+              title: `Previous Tab > ${previousTabDetails.title}`
+            });
+          } else {
+            results.push(directCommandMatch);
+          }
+        }
+        break;
       default:
-        let itemsToSearch: (chrome.tabs.Tab | chrome.tabGroups.TabGroup)[] = [];
-        if (commandMode && activeCommand === 'close') {
-          // In 'close' command mode, search only tabs
-          itemsToSearch = tabs;
-        } else if (commandMode && activeCommand === 'createTabGroup') {
-          // In 'createTabGroup' command mode, search only tabs
-          itemsToSearch = tabs;
-        } else if (commandMode && activeCommand === 'deleteTabGroup') {
-          // In 'deleteTabGroup' command mode, search only tab groups
-          itemsToSearch = tabGroups;
-        } else {
-          // Default: search all tabs
-          itemsToSearch = tabs;
-        }
-
-        if (!parsedCommand.query && !commandMode) {
-          // Sort tabs by last accessed time if no query and not in command mode
-          const sortedTabs = [...tabs].sort((a, b) => {
-            const timeA = tabAccessTimes[a.id!] || 0;
-            const timeB = tabAccessTimes[b.id!] || 0;
-            return timeB - timeA; // Descending order (most recent first)
-          });
-          results.push(...sortedTabs.map((tab) => ({ type: 'tab', tab })));
-        } else if (parsedCommand.query) {
-          // Apply fuzzy search based on itemsToSearch
-          const fuseForContext = new Fuse(itemsToSearch, { keys: ['title', 'url'], includeScore: true, threshold: 0.4 });
-          results.push(...fuseForContext.search(parsedCommand.query).map(result => {
-            if ('tab' in result.item) {
-              return { type: 'tab', tab: result.item.tab };
-            } else if ('id' in result.item && 'title' in result.item) { // Assuming it's a TabGroup
-              return {
-                type: 'action',
-                id: `group-${result.item.id}`,
-                title: `Group: ${result.item.title || 'Untitled Group'}`,
-                action: () => { /* No direct action on search result click for groups */ }
-              };
-            }
-            return null; // Should not happen
-          }).filter(Boolean) as SearchResultItem[]);
-        } else if (commandMode && activeCommand === 'deleteTabGroup') {
-          // If in deleteTabGroup command mode with no query, show all groups
-          results.push(...tabGroups.map(group => ({
-            type: 'action',
-            id: `group-${group.id}`,
-            title: `Group: ${group.title || 'Untitled Group'}`,
-            action: () => { /* No direct action on search result click for groups */ }
-          })));
-        } else if (commandMode && (activeCommand === 'close' || activeCommand === 'createTabGroup')) {
-          // If in close or createTabGroup command mode with no query, show all tabs
-          results.push(...tabs.map((tab) => ({ type: 'tab', tab })));
-        }
         break;
     }
 
+    // Perform fuzzy search if there's a query
+    if (query.trim().length > 0) {
+      const fuseResults = fuse.search(query);
+      fuseResults.forEach(result => {
+        const item = result.item;
+        if (item.type === 'tab') {
+          results.push({ type: 'tab', tab: item.tab });
+        } else if (item.type === 'action') {
+          // Check if it's a group action or a command suggestion
+          if (item.id.startsWith('group-')) {
+            results.push({
+              type: 'action',
+              id: item.id,
+              title: `Group: ${item.title || 'Untitled Group'}`,
+              action: item.action
+            });
+          } else {
+            // It's a command suggestion
+            results.push(item);
+          }
+        }
+      });
+    }
+
+    // Remove duplicates and prioritize direct command matches
+    const uniqueResultsMap = new Map<string, SearchResultItem>();
+    results.forEach(item => {
+      let key: string;
+      if (item.type === 'tab') {
+        key = `tab-${item.tab.id}`;
+      } else if (item.type === 'action') {
+        key = `action-${item.id}`;
+      } else if (item.type === 'closeTabAction') {
+        key = `closeTabAction-${item.tab.id}`;
+      } else {
+        key = 'unknown';
+      }
+      if (!uniqueResultsMap.has(key)) {
+        uniqueResultsMap.set(key, item);
+      }
+    });
+
+    const finalResults = Array.from(uniqueResultsMap.values());
+
     // Default Google Search if no other results and query is not empty
-    if (results.length === 0 && query.trim().length > 0) {
-      results.push({
+    if (finalResults.length === 0 && query.trim().length > 0) {
+      finalResults.push({
         type: 'action',
         id: 'default-google-search',
         title: `Google "${query}"`,
@@ -331,9 +288,9 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
       });
     }
 
-    return results;
+    return finalResults;
 
-  }, [query, tabs, fuse, fetchTabs, previousTabDetails, tabAccessTimes, commandMode, activeCommand, tabGroups]);
+  }, [query, tabs, fuse, fetchTabs, previousTabDetails, tabAccessTimes, commandMode, activeCommand, tabGroups, commandSuggestions]);
 
   const handleItemClick = (item: SearchResultItem) => {
     if (commandMode && activeCommand) {
@@ -367,17 +324,23 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
       chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabId: item.tab.id }, fetchTabs);
       onClose(); // Close palette after closing a single tab
     } else if (item.type === 'action') {
-      // Determine if the action should enter command mode or execute immediately
-      const commandType = parseCommand(query).type; // Re-parse query to get command type
-      const requiresCommandMode = commandType === 'close' || commandType === 'createTabGroup' || commandType === 'deleteTabGroup';
-
-      if (requiresCommandMode) {
+      // Check if the action is one that should enter command mode
+      if (item.id === 'close-suggest') {
         setCommandMode(true);
-        setActiveCommand(commandType);
+        setActiveCommand('close');
+        setQuery(''); // Clear query for contextual search
+      } else if (item.id === 'create-tab-group-suggest') {
+        setCommandMode(true);
+        setActiveCommand('createTabGroup');
+        setQuery(''); // Clear query for contextual search
+      } else if (item.id === 'delete-tab-group-suggest') {
+        setCommandMode(true);
+        setActiveCommand('deleteTabGroup');
         setQuery(''); // Clear query for contextual search
       } else {
-        item.action(); // Execute the action directly
-        onClose(); // Close palette for immediate actions
+        // For all other actions, execute immediately and close palette
+        item.action();
+        onClose();
       }
     }
   };
