@@ -12,6 +12,7 @@ Okay now we want to enhance our chrome extension. We want to improve accessibili
     - Infact I want a json config file where I can configure Search Queries easily (Similar to chrome's custom search engine)
   - Close Duplicate > Closes all the duplicate tabs
 - Enable Tab completion whenever I'm writing commands > Show commands as suggestions too in the list
+- If there are no search results, the default action should be to perform a Google search on the current input.
 
 
 # Technical requirements
@@ -30,6 +31,7 @@ Okay now we want to enhance our chrome extension. We want to improve accessibili
         -   Extend `background.ts` to handle dynamic `OPEN_URL` requests based on these configurations.
     -   **`Close Duplicate`:** Implement logic in `background.ts` using `chrome.tabs.query` and `chrome.tabs.remove` to identify and close duplicate tabs. The `CommandPalette` will send a message to trigger this action.
     -   **`Close {query}`:** Enhance `CommandPalette.tsx` to filter tabs based on the provided query and allow selection/closure of those tabs.
+    -   **Default Google Search:** If no other search results (tabs or commands) are found for the current query, automatically generate a Google search action item.
 
 -   **Tab Completion/Suggestions:**
     -   Extend the `searchResults` logic in `CommandPalette.tsx` to include command suggestions (e.g., `Close Duplicate`, `Google`, `Youtube`) alongside tab results.
@@ -56,6 +58,7 @@ Okay now we want to enhance our chrome extension. We want to improve accessibili
         *   Modify `CommandPalette.tsx` to load and use this config.
         *   Update `searchResults` to generate search engine action items based on parsed commands.
     *   **Command Suggestions:** Extend `searchResults` to include command suggestions (e.g., `Close Duplicate`, `Google`, `Youtube`) based on the current query.
+    *   **Default Google Search:** Modify `searchResults` generation to include a default Google search action if the query yields no other results.
 
 4.  **Phase 4: Implementing New Actions**
     *   **`Close Duplicate`:**
