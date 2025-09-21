@@ -14,13 +14,17 @@ function App() {
     let lastShiftPress = 0;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      console.log('Key pressed:', event.key); // ADDED FOR DEBUGGING
+
       if (event.key === 'Shift') {
         const now = Date.now();
         if (now - lastShiftPress < 300) {
+          console.log('Double Shift detected, calling setIsOpen(true)'); // ADDED FOR DEBUGGING
           setIsOpen(true);
         }
         lastShiftPress = now;
       } else if (event.key === 'Escape') {
+        console.log('Escape pressed, calling setIsOpen(false)'); // ADDED FOR DEBUGGING
         setIsOpen(false);
       }
     };

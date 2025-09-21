@@ -63,3 +63,8 @@ We want to keep the project structure very modular and clean. We want to create 
 *   **Phase 4 (Core Actions):** Implemented fuzzy search on tabs using `fuse.js`. Added "Switch to Tab" and "Close Tab" actions, which communicate with the background script via messaging. Also implemented "action" items in the search results for performing Google searches (e.g., `g my query`) and opening URLs directly.
 
 # Issues:
+- [ ] Double Shift is not working. Nothing is happening
+  - I get the log `Steroid content script loaded.`
+  - However when I press Double Shift, I get this warning
+  `Mixed Content: The page at 'https://docs.plasmo.com/framework' was loaded over HTTPS, but requested an insecure element 'http://localhost:8888/static/favicons/favicon.ico'. This request was automatically upgraded to HTTPS, For more information see https://blog.chromium.org/2019/10/no-more-mixed-messages-about-https.html` 
+  - and an error `http://localhost:8888/static/favicons/favicon-notebook.ico net::ERR_CONNECTION_REFUSED`

@@ -8,9 +8,6 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        // We don't use the popup, but it's required as an input.
-        // The content script will inject the UI.
-        popup: resolve(__dirname, 'index.html'),
         background: resolve(__dirname, 'src/background.ts'),
         content: resolve(__dirname, 'src/content.tsx'),
       },

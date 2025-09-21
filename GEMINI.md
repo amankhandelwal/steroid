@@ -30,4 +30,3 @@ You will follow the following steps during each execution Phase:
 
 # Rules
 - You are not supposed to use git commands unless explicitly asked and initiated by the user. You would never ask the user to do a git commit proactively.
-- You are 

@@ -86,7 +86,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   }, [fetchTabs]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999] pt-20">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div className="w-1/2 max-w-2xl bg-gray-800 text-white rounded-lg shadow-lg overflow-hidden">
         <div className="p-4">
           <input
@@ -109,7 +109,11 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
                 {item.type === 'tab' ? (
                   <>
                     <div className="flex items-center gap-2 truncate">
-                      {item.tab.favIconUrl && <img src={item.tab.favIconUrl} alt="" className="w-4 h-4 flex-shrink-0" />}
+                      {item.tab.favIconUrl &&
+                        !item.tab.favIconUrl.startsWith('http://localhost') &&
+                        !item.tab.favIconUrl.startsWith('http://127.0.0.1') &&
+                        <img src={item.tab.favIconUrl} alt="" className="w-4 h-4 flex-shrink-0" />
+                      }
                       <span className="truncate">{item.tab.title}</span>
                     </div>
                     <button
