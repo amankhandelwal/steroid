@@ -21,7 +21,7 @@ Bulk Actions/Commands
   - Selected Tabs should be visible on top of the search results
 
 Tab Group Action
-- Capability to Add certain Tabs to a group
+- Capability to Add certain Tabs to a group (using Chrome's native tab grouping feature)
 - This would leverage Bulk Action & Command mode Capabilities
   - User would enter Tab Group command mode
   - User would then select multiple tabs (could even be across different windows). This selection would happen using a combination of Seach and "Tab"
@@ -43,7 +43,6 @@ Here's a breakdown of the technical requirements for each feature:
     *   Consider edge cases: tab closing, window changes, new tab opening.
     *   The history should probably be per-window or global, depending on desired behavior. (Let's assume global for now, but this might need clarification).
     *   Persist this history across browser sessions (using `chrome.storage`).
-    *   There should be a limit on stack size - max 100 items. On top of this stack should remove older items to keep the max limit restricted.
 *   **Previous Tab Command:**
     *   Add a new command type and action in `commandParser.ts` and `CommandPalette.tsx`.
     *   The action should retrieve the last tab from the history and switch to it using `chrome.tabs.update` and `chrome.windows.update`.
@@ -77,25 +76,24 @@ Here's a breakdown of the technical requirements for each feature:
 *   **Execute on Selected:**
     *   When "Enter" is pressed, if `selectedTabIds` is not empty, the active command should be executed on all selected tabs. This will require modifying the `handleItemClick` logic and potentially the `chrome.runtime.sendMessage` calls to accept an array of `tabId`s.
 
-**5. Tab Group Action:**
-*   **Tab Group Storage:**
-    *   Need a new data structure in `background.ts` to store tab groups (e.g., `Map<string, number[]>`, where key is group name, value is array of tab IDs).
-    *   Persist tab groups using `chrome.storage`.
+**5. Tab Group Action (using Chrome's native tab grouping feature):**
+*   **Permissions:** Add `tabGroups` permission to `manifest.json`.
 *   **"Create Tab Group" Command:**
     *   New command in `commandParser.ts` and `CommandPalette.tsx`.
     *   This command will enter a "Tab Group creation mode" (a specific command mode).
-    *   In this mode, the user selects tabs using the bulk action mechanism.
-    *   Upon "Enter", prompt for a group name, then save the group.
+    *   In this mode, the user selects multiple tabs using the bulk action mechanism.
+    *   Upon "Enter", the selected tabs will be grouped using `chrome.tabs.group()`.
+    *   The user should be prompted for a group name (or a default name can be provided).
 *   **Search Indexing:**
-    *   Modify `CommandPalette.tsx`'s `searchResults` to include tab group names when searching.
+    *   Modify `CommandPalette.tsx`'s `searchResults` to include existing Chrome Tab Group names when searching.
 *   **Bulk Operations on Tab Groups:**
-    *   Extend existing bulk actions (e.g., "Close Tab") to accept a tab group name as a target. This will involve retrieving all tab IDs for that group and applying the action.
+    *   Extend existing bulk actions (e.g., "Close Tab") to accept a tab group as a target. This will involve querying `chrome.tabGroups` to get tab IDs within the group and applying the action.
 
-**6. Delete Tab Group Action:**
+**6. Delete Tab Group Action (using Chrome's native tab grouping feature):**
 *   **"Delete Tab Group" Command:**
     *   New command in `commandParser.ts` and `CommandPalette.tsx`.
-    *   This command will list existing tab groups.
-    *   Selecting a group and pressing Enter will delete the group from storage without closing tabs.
+    *   This command will list existing Chrome Tab Groups for selection.
+    *   Selecting a group and pressing Enter will ungroup the tabs using `chrome.tabs.ungroup()` without closing the tabs.
 
 # Gemini's Execution Plan
 I will approach this in phases, focusing on one feature or a small set of related features at a time, ensuring each step is testable and stable.
@@ -137,27 +135,27 @@ I will approach this in phases, focusing on one feature or a small set of relate
     *   Modify the "Close" command's action to accept multiple `tabId`s from `selectedTabIds` and send them to `background.ts`.
     *   Update `background.ts` to handle `CLOSE_TAB` message with an array of `tabId`s.
 
-**Phase 4: Tab Group Management**
+**Phase 4: Native Tab Group Management**
 
-1.  **Tab Group Storage & API:**
-    *   Create a new module/utility in `background.ts` (e.g., `tabGroups.ts`) to manage tab groups in `chrome.storage.local`.
-    *   Implement functions for `createGroup`, `getGroups`, `deleteGroup`, `addTabsToGroup`, `removeTabsFromGroup`.
+1.  **Add `tabGroups` Permission:**
+    *   Modify `public/manifest.json` to include the `tabGroups` permission.
 2.  **"Create Tab Group" Command:**
     *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
     *   Implement command mode for group creation, leveraging bulk selection.
-    *   Prompt for group name (might need a simple modal or input within the palette).
+    *   Use `chrome.tabs.group()` to create the group from selected tabs.
+    *   Implement a mechanism to prompt the user for a group name or assign a default.
 3.  **"Delete Tab Group" Command:**
     *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
-    *   List existing groups for selection.
-    *   Action to delete group from storage.
+    *   List existing Chrome Tab Groups for selection (using `chrome.tabGroups.query()`).
+    *   Action to ungroup tabs using `chrome.tabs.ungroup()`.
 
 **Phase 5: Tab Group Enhancements & Refinements**
 
 1.  **Search Indexing for Tab Groups:**
-    *   Modify `CommandPalette.tsx`'s `searchResults` to include tab group names in fuzzy search.
+    *   Modify `CommandPalette.tsx`'s `searchResults` to include existing Chrome Tab Group names (from `chrome.tabGroups.query()`) in fuzzy search.
 2.  **Bulk Operations on Tab Groups:**
-    *   Extend existing bulk actions (e.g., "Close") to accept a tab group name as a target.
-    *   Modify `background.ts` to retrieve tab IDs from the group and apply the action.
+    *   Extend existing bulk actions (e.g., "Close") to accept a tab group as a target.
+    *   Modify `background.ts` to query `chrome.tabGroups` for tab IDs within the group and apply the action.
 3.  **Refine Command Mode Contextual Search:**
     *   Implement more sophisticated filtering for `fuse.js` based on `activeCommand`.
 
