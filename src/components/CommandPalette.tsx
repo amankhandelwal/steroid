@@ -50,6 +50,50 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     const parsedCommand = parseCommand(query);
     let results: SearchResultItem[] = [];
 
+    // Define all possible command suggestions
+    const commandSuggestions: ActionItem[] = [
+      {
+        type: 'action',
+        id: 'close-duplicate-suggest',
+        title: 'Close Duplicate Tabs',
+        action: () => setQuery('close duplicate') // Auto-complete the command
+      },
+      {
+        type: 'action',
+        id: 'google-suggest',
+        title: 'Google Search',
+        action: () => setQuery('g ')
+      },
+      {
+        type: 'action',
+        id: 'youtube-suggest',
+        title: 'YouTube Search',
+        action: () => setQuery('y ')
+      },
+      {
+        type: 'action',
+        id: 'close-suggest',
+        title: 'Close Tab(s)',
+        action: () => setQuery('close ')
+      },
+      {
+        type: 'action',
+        id: 'open-url-suggest',
+        title: 'Open URL',
+        action: () => setQuery('http://')
+      }
+    ];
+
+    // Filter command suggestions based on query
+    const filteredCommandSuggestions = commandSuggestions.filter(cmd =>
+      cmd.title.toLowerCase().includes(query.toLowerCase())
+    );
+
+    // Add command suggestions to results if query is not a specific command yet
+    if (parsedCommand.type === 'tabSearch' || parsedCommand.type === 'openUrl') { // Only show suggestions if not already a specific command
+      results.push(...filteredCommandSuggestions);
+    }
+
     switch (parsedCommand.type) {
       case 'google':
       case 'youtube':
@@ -95,26 +139,26 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
       case 'close':
         if (parsedCommand.query) {
           const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item);
-          results = filteredTabs.map(tab => ({
+          results.push(...filteredTabs.map(tab => ({
             type: 'closeTabAction',
             tab: tab,
             title: `Close: ${tab.title}`
-          }));
+          })));
         } else {
           // If 'close' command is typed without query, show all tabs as closable
-          results = tabs.map(tab => ({
+          results.push(...tabs.map(tab => ({
             type: 'closeTabAction',
             tab: tab,
             title: `Close: ${tab.title}`
-          }));
+          })));
         }
         break;
       case 'tabSearch':
       default:
         if (!parsedCommand.query) {
-          results = tabs.map((tab) => ({ type: 'tab', tab }));
+          results.push(...tabs.map((tab) => ({ type: 'tab', tab })));
         } else {
-          results = fuse.search(parsedCommand.query).map(result => ({ type: 'tab', tab: result.item }));
+          results.push(...fuse.search(parsedCommand.query).map(result => ({ type: 'tab', tab: result.item })));
         }
         break;
     }
@@ -268,6 +312,18 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
                     >
                       &times;
                     </button>
+                  </>
+                ) : item.type === 'closeTabAction' ? (
+                  <>
+                    <div className="flex items-center gap-2 truncate">
+                      {item.tab.favIconUrl &&
+                        !item.tab.favIconUrl.startsWith('http://localhost') &&
+                        !item.tab.favIconUrl.startsWith('http://127.0.0.1') &&
+                        <img src={item.tab.favIconUrl} alt="" className="w-4 h-4 flex-shrink-0" />
+                      }
+                      <span className="truncate">{item.tab.title}</span>
+                    </div>
+                    <span className="text-xs text-gray-400 flex-shrink-0 truncate">{new URL(item.tab.url || '').hostname}</span>
                   </>
                 ) : (
                   <span className="truncate">{item.title}</span>

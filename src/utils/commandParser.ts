@@ -1,3 +1,5 @@
+import searchEngines from '../config/searchEngines.json';
+
 export type CommandType = 'tabSearch' | 'google' | 'youtube' | 'close' | 'closeDuplicate' | 'openUrl';
 
 export interface ParsedCommand {
@@ -14,20 +16,18 @@ export interface ParsedCommand {
 export function parseCommand(input: string): ParsedCommand {
   const lowerInput = input.toLowerCase().trim();
 
-  if (lowerInput.startsWith('g ') || lowerInput.startsWith('google ')) {
-    return {
-      type: 'google',
-      query: input.substring(lowerInput.indexOf('g') + (lowerInput.startsWith('google ') ? 7 : 2)).trim(),
-      originalQuery: input,
-    };
-  }
-
-  if (lowerInput.startsWith('y ') || lowerInput.startsWith('youtube ')) {
-    return {
-      type: 'youtube',
-      query: input.substring(lowerInput.indexOf('y') + (lowerInput.startsWith('youtube ') ? 8 : 2)).trim(),
-      originalQuery: input,
-    };
+  // Check for search engine commands
+  for (const engine of searchEngines) {
+    for (const prefix of engine.prefix) {
+      if (lowerInput.startsWith(`${prefix} `)) {
+        console.log(`CommandParser: Using search engine config for ${engine.name}`);
+        return {
+          type: engine.id as CommandType, // Cast to CommandType, assuming engine.id matches
+          query: input.substring(prefix.length + 1).trim(),
+          originalQuery: input,
+        };
+      }
+    }
   }
 
   if (lowerInput.startsWith('close duplicate')) {
