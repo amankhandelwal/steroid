@@ -90,7 +90,3 @@ We want to keep the project structure very modular and clean. We want to create 
 *   **Phase 4 (Implementing New Actions):** Implemented `CLOSE_DUPLICATE_TABS` in `background.ts` and integrated it into `CommandPalette.tsx`. Also refined the `Close {query}` command to filter and display closable tabs.
 *   **Phase 5 (Refinement & Tab Completion):** Implemented `Tab` key handling for auto-completion of the active item's title.
 
-
-# Issues:
-- [ ] Close Duplicate tabs command is not working
-- [ ] Whenever I close multiple tabs (more than 1 - I should always get a confirmation with the title+URL of the exact tab that'll get closed. Closure should only happen on confirmation)
