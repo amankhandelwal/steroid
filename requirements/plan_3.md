@@ -10,6 +10,7 @@ Search Results enhancements
 - Commands/Actions should only be displayed once the user starts typing the search query (following the fuzzy search)
 
 Enter Command mode - When the user has selected a command/action, enter command mode
+- **Refined Command Mode Logic:** Command mode should *only* be entered for commands that require subsequent user interaction within the palette (e.g., selecting multiple items, providing additional parameters). Examples: "Close" (when a query is present for filtering tabs), "Create Tab Group". Commands that execute immediately and don't require further interaction (e.g., "Previous Tab", "Close Duplicate Tabs", "Open URL", search commands) should *not* enter command mode and should close the palette upon execution.
 - Display the command being executed to the user
 - Whatever the user is now typing is in the context of the command execution - example "Close" > changes to Close command mode > query that the user is typing would be in the context of the close command now - essentially searching for tabs to close 
 
@@ -20,7 +21,7 @@ Bulk Actions/Commands
   - Pressing "Enter" to actually perform the action on the all selected items
   - Selected Tabs should be visible on top of the search results
 
-Tab Group Action
+Tab Group Action (using Chrome's native tab grouping feature):
 - Capability to Add certain Tabs to a group (using Chrome's native tab grouping feature)
 - This would leverage Bulk Action & Command mode Capabilities
   - User would enter Tab Group command mode
@@ -40,6 +41,8 @@ Here's a breakdown of the technical requirements for each feature:
 *   **Previous Tab Tracking:**
     *   Need a mechanism in the background script (`background.ts`) to track the active tab changes.
     *   This should maintain a history (stack-like structure) of previously active tab IDs.
+    *   **Constraint:** Max stack size of 100. Older entries beyond this limit should be removed.
+    *   **Constraint:** No duplicate entries. If a tab is already in the history and becomes active again, it should be moved to the top (most recent position) of the stack.
     *   Consider edge cases: tab closing, window changes, new tab opening.
     *   The history should probably be per-window or global, depending on desired behavior. (Let's assume global for now, but this might need clarification).
     *   Persist this history across browser sessions (using `chrome.storage`).
@@ -56,9 +59,10 @@ Here's a breakdown of the technical requirements for each feature:
     *   Modify `CommandPalette.tsx`'s `searchResults` `useMemo` to conditionally include `commandSuggestions` only when `query.trim().length > 0`.
 
 **3. Enter Command mode:**
+*   **Refined Command Mode Logic:** Command mode should *only* be entered for commands that require subsequent user interaction within the palette (e.g., selecting multiple items, providing additional parameters). Examples: "Close" (when a query is present for filtering tabs), "Create Tab Group". Commands that execute immediately and don't require further interaction (e.g., "Previous Tab", "Close Duplicate Tabs", "Open URL", search commands) should *not* enter command mode and should close the palette upon execution.
 *   **State Management:**
     *   Introduce a new state variable in `CommandPalette.tsx` (e.g., `commandMode: boolean`, `activeCommand: string | null`).
-    *   When a command is selected (e.g., "Close"), transition to command mode.
+    *   When a command that *requires further interaction* is selected, transition to command mode.
 *   **UI Display:**
     *   Modify the input placeholder or add a separate display element in `CommandPalette.tsx` to show the active command (e.g., "Close >").
 *   **Contextual Search:**
@@ -103,6 +107,7 @@ I will approach this in phases, focusing on one feature or a small set of relate
 1.  **Implement Tab History Tracking:**
     *   Modify `background.ts` to listen for `chrome.tabs.onActivated` events.
     *   Store a stack of `tabId`s in `chrome.storage.local`.
+    *   **Implement logic to ensure max stack size of 100 and no duplicate entries (move to front behavior).**
     *   Create a utility function in `background.ts` to manage this history (push, pop, get previous).
 2.  **Add "Previous Tab" Command:**
     *   Update `commandParser.ts` to recognize a "previous tab" command.
@@ -122,9 +127,9 @@ I will approach this in phases, focusing on one feature or a small set of relate
 
 **Phase 3: Command Mode & Bulk Actions (Initial)**
 
-1.  **Command Mode State:**
-    *   Add `commandMode` and `activeCommand` state to `CommandPalette.tsx`.
-    *   Modify `handleItemClick` to set `commandMode` and `activeCommand` when a command `ActionItem` is selected.
+1.  **Refine Command Mode Entry:**
+    *   Modify `handleItemClick` to conditionally set `commandMode` and `activeCommand` *only* for commands that require further interaction (e.g., "Close" with a query, "Create Tab Group").
+    *   For immediate execution commands, `handleItemClick` should trigger the action and then `onClose()`.
 2.  **UI for Command Mode:**
     *   Update the input placeholder in `CommandPalette.tsx` to reflect `activeCommand`.
 3.  **Basic Bulk Selection:**
