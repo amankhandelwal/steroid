@@ -92,3 +92,5 @@ We want to keep the project structure very modular and clean. We want to create 
   - When I type "Close query" The List below now changes to `Close {Tab titles}` without icons. It becomes difficult for me to understand what the URL is
   - When I type "close dupli" - I should ideally get a suggestion - "Close Duplicates" command, instead initial suggestion is always to Google the word. Once I type the entire command, only then the command appears
 - [ ] Whenever I'm closing multiple tabs (more than 1 - I should always get a confirmation with the title+URL of the exact tab that'll get closed. Closure should only happen on confirmation)
+- [ ] Slightly concerned if the custom search engine config is even being consumed.
+  - I see in command parser - Youtube and Google searches are handled separately. Not sure where the searchEngines.json is being injected. Need more clarity on this
