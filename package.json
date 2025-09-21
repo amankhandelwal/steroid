@@ -1,0 +1,38 @@
+{
+  "name": "steroid",
+  "version": "1.0.0",
+  "description": "Chrome extension to run \"Chrome on Steroid\"",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amankhandelwal/steroid.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/amankhandelwal/steroid/issues"
+  },
+  "homepage": "https://github.com/amankhandelwal/steroid#readme",
+  "dependencies": {
+    "fuse.js": "^7.1.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.12",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.6"
+  }
+}
