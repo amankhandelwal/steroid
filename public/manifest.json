@@ -8,15 +8,16 @@
     "scripting"
   ],
   "background": {
-    "service_worker": "src/background.ts"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content.tsx"]
+      "js": ["content.js"]
     }
   ],
   "action": {
-    "default_popup": "index.html"
+    "default_title": "Steroid - Press Shift+Shift to open"
   }
 }

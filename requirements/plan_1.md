@@ -61,3 +61,5 @@ We want to keep the project structure very modular and clean. We want to create 
 *   **Phase 2 (Extension Activation):** Implemented the UI injection strategy. A content script (`content.tsx`) now mounts the React app into the DOM of any webpage. The main `App.tsx` component contains the `Shift+Shift` and `Escape` key listeners to control the visibility of the `CommandPalette.tsx` component.
 *   **Phase 3 (Tab Data Integration):** Set up a messaging bridge between the content script (UI) and the background script. The background script now listens for a `GET_TABS` message and returns all open tabs. The `CommandPalette` component fetches and displays this list on open. Added `@types/chrome` for type safety.
 *   **Phase 4 (Core Actions):** Implemented fuzzy search on tabs using `fuse.js`. Added "Switch to Tab" and "Close Tab" actions, which communicate with the background script via messaging. Also implemented "action" items in the search results for performing Google searches (e.g., `g my query`) and opening URLs directly.
+
+# Issues:
