@@ -1,0 +1,14 @@
+[
+  {
+    "id": "google",
+    "prefix": ["g", "google"],
+    "name": "Google Search",
+    "url": "https://www.google.com/search?q=%s"
+  },
+  {
+    "id": "youtube",
+    "prefix": ["y", "youtube"],
+    "name": "YouTube Search",
+    "url": "https://www.youtube.com/results?search_query=%s"
+  }
+]

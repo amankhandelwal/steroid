@@ -33,5 +33,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message.url) return;
     chrome.tabs.create({ url: message.url });
     return true;
+
+  } else if (message.type === "CLOSE_DUPLICATE_TABS") {
+    chrome.tabs.query({}, (tabs) => {
+      const urls = new Set<string>();
+      const tabsToClose: number[] = [];
+
+      for (const tab of tabs) {
+        if (tab.url) {
+          if (urls.has(tab.url)) {
+            if (tab.id) {
+              tabsToClose.push(tab.id);
+            }
+          } else {
+            urls.add(tab.url);
+          }
+        }
+      }
+
+      if (tabsToClose.length > 0) {
+        chrome.tabs.remove(tabsToClose, () => {
+          sendResponse({ success: true, closedCount: tabsToClose.length });
+        });
+      } else {
+        sendResponse({ success: true, closedCount: 0 });
+      }
+    });
+    return true; // Asynchronous response
   }
 });
