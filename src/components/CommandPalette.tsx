@@ -86,14 +86,14 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   }, [fetchTabs]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-      <div className="w-1/2 max-w-2xl bg-gray-800 text-white rounded-lg shadow-lg overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999] pt-[20vh] backdrop-blur-sm">
+      <div className="w-[50vw] max-w-2xl bg-gray-800 text-white rounded-lg shadow-lg overflow-hidden">
         <div className="p-4">
           <input
             ref={inputRef}
             type="text"
             placeholder="Search tabs, or type 'g ' to google..."
-            className="w-full bg-gray-700 text-white placeholder-gray-400 p-2 rounded-md outline-none"
+            className="w-full h-10 bg-gray-700 text-white placeholder-gray-400 p-2 rounded-lg outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
