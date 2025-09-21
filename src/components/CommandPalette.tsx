@@ -33,6 +33,12 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
   const [query, setQuery] = useState('');
   const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [previousTabDetails, setPreviousTabDetails] = useState<{ title: string; url: string } | null>(null);
+  const [tabAccessTimes, setTabAccessTimes] = useState<Record<number, number>>({});
+  const [commandMode, setCommandMode] = useState<boolean>(false);
+  const [activeCommand, setActiveCommand] = useState<CommandType | null>(null);
+  const [selectedTabIds, setSelectedTabIds] = useState<Set<number>>(new Set());
+  const [tabGroups, setTabGroups] = useState<chrome.tabGroups.TabGroup[]>([]);
 
   const fetchTabs = useCallback(() => {
     chrome.runtime.sendMessage({ type: 'GET_TABS' }, (response) => {
@@ -44,7 +50,45 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     });
   }, []);
 
-  const fuse = useMemo(() => new Fuse(tabs, { keys: ['title', 'url'], includeScore: true, threshold: 0.4 }), [tabs]);
+  // Fetch previous tab details and tab access times on mount
+  useEffect(() => {
+    chrome.runtime.sendMessage({ type: 'GET_PREVIOUS_TAB_DETAILS' }, (response) => {
+      if (response && response.success) {
+        setPreviousTabDetails({ title: response.tabTitle || 'Untitled', url: response.tabUrl || '' });
+      } else {
+        setPreviousTabDetails(null);
+      }
+    });
+
+    chrome.runtime.sendMessage({ type: 'GET_TAB_ACCESS_TIMES' }, (response) => {
+      if (response && response.success) {
+        setTabAccessTimes(response.accessTimes);
+      } else {
+        console.error('Error fetching tab access times:', response.message);
+      }
+    });
+
+    chrome.runtime.sendMessage({ type: 'GET_TAB_GROUPS' }, (response) => {
+      if (response && response.success) {
+        setTabGroups(response.tabGroups);
+      } else {
+        console.error('Error fetching tab groups:', response.message);
+      }
+    });
+  }, []);
+
+  const fuse = useMemo(() => {
+    const searchableItems: (TabItem | ActionItem)[] = [
+      ...tabs.map(tab => ({ type: 'tab', tab })),
+      ...tabGroups.map(group => ({
+        type: 'action',
+        id: `group-${group.id}`,
+        title: group.title || 'Untitled Group',
+        action: () => { /* No direct action on search result click for groups */ }
+      }))
+    ];
+    return new Fuse(searchableItems, { keys: ['title', 'url'], includeScore: true, threshold: 0.4 });
+  }, [tabs, tabGroups]);
 
   const searchResults = useMemo((): SearchResultItem[] => {
     const parsedCommand = parseCommand(query);
@@ -52,6 +96,19 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
     // Define all possible command suggestions
     const commandSuggestions: ActionItem[] = [
+      // Previous Tab Command
+      ...(previousTabDetails ? [{
+        type: 'action',
+        id: 'previous-tab-suggest',
+        title: `Previous Tab > ${previousTabDetails.title}`,
+        action: () => chrome.runtime.sendMessage({ type: 'SWITCH_TO_PREVIOUS_TAB' }, (response) => {
+          if (response && response.success) {
+            console.log(`Switched to previous tab: ${response.tabId}`);
+          } else {
+            console.error('Error switching to previous tab:', response.message);
+          }
+        })
+      }] : []),
       {
         type: 'action',
         id: 'close-duplicate-suggest',
@@ -86,6 +143,18 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         id: 'open-url-suggest',
         title: 'Open URL',
         action: () => setQuery('http://')
+      },
+      {
+        type: 'action',
+        id: 'create-tab-group-suggest',
+        title: 'Create Tab Group',
+        action: () => setQuery('create tab group')
+      },
+      {
+        type: 'action',
+        id: 'delete-tab-group-suggest',
+        title: 'Delete Tab Group',
+        action: () => setQuery('delete tab group')
       }
     ];
 
@@ -94,8 +163,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
       cmd.title.toLowerCase().includes(query.toLowerCase())
     );
 
-    // Add command suggestions to results if query is not a specific command yet
-    if (parsedCommand.type === 'tabSearch' || parsedCommand.type === 'openUrl') { // Only show suggestions if not already a specific command
+    // Add command suggestions to results if query is not a specific command yet and query is not empty
+    if ((parsedCommand.type === 'tabSearch' || parsedCommand.type === 'openUrl') && query.trim().length > 0) { // Only show suggestions if not already a specific command
       results.push(...filteredCommandSuggestions);
     }
 
@@ -128,6 +197,20 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           });
         }
         break;
+      case 'previousTab':
+        results.push({
+          type: 'action',
+          id: 'previous-tab',
+          title: `Previous Tab > ${previousTabDetails?.title || ''}`,
+          action: () => chrome.runtime.sendMessage({ type: 'SWITCH_TO_PREVIOUS_TAB' }, (response) => {
+            if (response && response.success) {
+              console.log(`Switched to previous tab: ${response.tabId}`);
+            } else {
+              console.error('Error switching to previous tab:', response.message);
+            }
+          })
+        });
+        break;
       case 'closeDuplicate':
         results.push({
           type: 'action',
@@ -139,6 +222,30 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
               fetchTabs(); // Re-fetch tabs to update UI
             }
           })
+        });
+        break;
+      case 'createTabGroup':
+        results.push({
+          type: 'action',
+          id: 'create-tab-group',
+          title: 'Create Tab Group',
+          action: () => {
+            setCommandMode(true);
+            setActiveCommand('createTabGroup');
+            setQuery(''); // Clear query for contextual search
+          }
+        });
+        break;
+      case 'deleteTabGroup':
+        results.push({
+          type: 'action',
+          id: 'delete-tab-group',
+          title: 'Delete Tab Group',
+          action: () => {
+            setCommandMode(true);
+            setActiveCommand('deleteTabGroup');
+            setQuery(''); // Clear query for contextual search
+          }
         });
         break;
       case 'close':
@@ -160,10 +267,56 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         break;
       case 'tabSearch':
       default:
-        if (!parsedCommand.query) {
-          results.push(...tabs.map((tab) => ({ type: 'tab', tab })));
+        let itemsToSearch: (chrome.tabs.Tab | chrome.tabGroups.TabGroup)[] = [];
+        if (commandMode && activeCommand === 'close') {
+          // In 'close' command mode, search only tabs
+          itemsToSearch = tabs;
+        } else if (commandMode && activeCommand === 'createTabGroup') {
+          // In 'createTabGroup' command mode, search only tabs
+          itemsToSearch = tabs;
+        } else if (commandMode && activeCommand === 'deleteTabGroup') {
+          // In 'deleteTabGroup' command mode, search only tab groups
+          itemsToSearch = tabGroups;
         } else {
-          results.push(...fuse.search(parsedCommand.query).map(result => ({ type: 'tab', tab: result.item })));
+          // Default: search all tabs
+          itemsToSearch = tabs;
+        }
+
+        if (!parsedCommand.query && !commandMode) {
+          // Sort tabs by last accessed time if no query and not in command mode
+          const sortedTabs = [...tabs].sort((a, b) => {
+            const timeA = tabAccessTimes[a.id!] || 0;
+            const timeB = tabAccessTimes[b.id!] || 0;
+            return timeB - timeA; // Descending order (most recent first)
+          });
+          results.push(...sortedTabs.map((tab) => ({ type: 'tab', tab })));
+        } else if (parsedCommand.query) {
+          // Apply fuzzy search based on itemsToSearch
+          const fuseForContext = new Fuse(itemsToSearch, { keys: ['title', 'url'], includeScore: true, threshold: 0.4 });
+          results.push(...fuseForContext.search(parsedCommand.query).map(result => {
+            if ('tab' in result.item) {
+              return { type: 'tab', tab: result.item.tab };
+            } else if ('id' in result.item && 'title' in result.item) { // Assuming it's a TabGroup
+              return {
+                type: 'action',
+                id: `group-${result.item.id}`,
+                title: `Group: ${result.item.title || 'Untitled Group'}`,
+                action: () => { /* No direct action on search result click for groups */ }
+              };
+            }
+            return null; // Should not happen
+          }).filter(Boolean) as SearchResultItem[]);
+        } else if (commandMode && activeCommand === 'deleteTabGroup') {
+          // If in deleteTabGroup command mode with no query, show all groups
+          results.push(...tabGroups.map(group => ({
+            type: 'action',
+            id: `group-${group.id}`,
+            title: `Group: ${group.title || 'Untitled Group'}`,
+            action: () => { /* No direct action on search result click for groups */ }
+          })));
+        } else if (commandMode && (activeCommand === 'close' || activeCommand === 'createTabGroup')) {
+          // If in close or createTabGroup command mode with no query, show all tabs
+          results.push(...tabs.map((tab) => ({ type: 'tab', tab })));
         }
         break;
     }
@@ -180,29 +333,75 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
     return results;
 
-  }, [query, tabs, fuse, fetchTabs]);
+  }, [query, tabs, fuse, fetchTabs, previousTabDetails, tabAccessTimes, commandMode, activeCommand, tabGroups]);
 
   const handleItemClick = (item: SearchResultItem) => {
-    if (item.type === 'tab') {
+    if (commandMode && activeCommand) {
+      // In command mode, clicking an item should toggle its selection
+      if (item.type === 'tab' || item.type === 'closeTabAction') {
+        setSelectedTabIds(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(item.tab.id!)) {
+            newSet.delete(item.tab.id!);}
+           else {
+            newSet.add(item.tab.id!);}
+          return newSet;
+        });
+      } else if (item.type === 'action' && item.id.startsWith('group-')) {
+        // If a group is clicked in command mode, select all tabs in that group
+        const groupId = parseInt(item.id.replace('group-', ''));
+        if (!isNaN(groupId)) {
+          chrome.runtime.sendMessage({ type: 'GET_TAB_GROUP_TABS', groupId }, (response) => {
+            if (response.success) {
+              setSelectedTabIds(new Set(response.tabIds));
+            } else {
+              console.error('Error fetching tabs in group:', response.message);
+            }
+          });
+        }
+      }
+    } else if (item.type === 'tab') {
       chrome.runtime.sendMessage({ type: 'SWITCH_TO_TAB', tabId: item.tab.id });
+      onClose(); // Close palette for direct tab switch
     } else if (item.type === 'closeTabAction') {
       chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabId: item.tab.id }, fetchTabs);
-    } else {
-      item.action();
+      onClose(); // Close palette after closing a single tab
+    } else if (item.type === 'action') {
+      // Determine if the action should enter command mode or execute immediately
+      const commandType = parseCommand(query).type; // Re-parse query to get command type
+      const requiresCommandMode = commandType === 'close' || commandType === 'createTabGroup' || commandType === 'deleteTabGroup';
+
+      if (requiresCommandMode) {
+        setCommandMode(true);
+        setActiveCommand(commandType);
+        setQuery(''); // Clear query for contextual search
+      } else {
+        item.action(); // Execute the action directly
+        onClose(); // Close palette for immediate actions
+      }
     }
-    onClose();
+  };
+
+  const handleBulkClose = () => {
+    if (selectedTabIds.size > 0 && activeCommand === 'close') {
+      chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabIds: Array.from(selectedTabIds) }, () => {
+        fetchTabs(); // Re-fetch tabs to update UI
+        setSelectedTabIds(new Set()); // Clear selection
+        onClose(); // Close palette after bulk action
+      });
+    }
   };
 
   const handleCloseTab = (e: React.MouseEvent, tabId: number) => {
     e.stopPropagation(); // Prevent the li's onClick from firing
-    chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabId }, fetchTabs);
+    chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabIds: [tabId] }, fetchTabs);
   };
 
   // Keyboard navigation logic
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // If a non-navigation key is pressed, refocus the input and reset active item
-      const isNavigationKey = ['ArrowUp', 'ArrowDown', 'Enter', 'Escape', '`'].includes(event.key);
+      const isNavigationKey = ['ArrowUp', 'ArrowDown', 'Enter', 'Escape', 'Tab', '`'].includes(event.key);
       if (!isNavigationKey && inputRef.current && document.activeElement !== inputRef.current) {
         inputRef.current.focus();
         setActiveItemIndex(0);
@@ -226,13 +425,69 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           break;
         case 'Enter':
           event.preventDefault();
-          if (activeItemIndex >= 0 && activeItemIndex < searchResults.length) {
+          if (commandMode && activeCommand === 'close' && selectedTabIds.size > 0) {
+            handleBulkClose();
+          } else if (commandMode && activeCommand === 'createTabGroup' && selectedTabIds.size > 0) {
+            // For now, use a default name. We can add a prompt later.
+            const groupName = `Group ${new Date().toLocaleTimeString()}`;
+            chrome.runtime.sendMessage({ type: 'CREATE_TAB_GROUP', tabIds: Array.from(selectedTabIds), groupName }, (response) => {
+              if (response.success) {
+                console.log(`Created tab group: ${groupName} with ID: ${response.groupId}`);
+                fetchTabs(); // Re-fetch tabs to update UI
+                setSelectedTabIds(new Set()); // Clear selection
+                onClose(); // Close palette after bulk action
+              } else {
+                console.error('Error creating tab group:', response.message);
+              }
+            });
+          } else if (commandMode && activeCommand === 'deleteTabGroup' && activeItemIndex >= 0 && activeItemIndex < searchResults.length) {
+            const selectedItem = searchResults[activeItemIndex];
+            if (selectedItem.type === 'action' && selectedItem.id.startsWith('group-')) {
+              const groupId = parseInt(selectedItem.id.replace('group-', ''));
+              if (!isNaN(groupId)) {
+                chrome.runtime.sendMessage({ type: 'DELETE_TAB_GROUP', groupId }, (response) => {
+                  if (response.success) {
+                    console.log(`Deleted tab group with ID: ${groupId}`);
+                    fetchTabs(); // Re-fetch tabs to update UI
+                    setSelectedTabIds(new Set()); // Clear selection
+                    onClose(); // Close palette after action
+                  } else {
+                    console.error('Error deleting tab group:', response.message);
+                  }
+                });
+              }
+            }
+          } else if (activeItemIndex >= 0 && activeItemIndex < searchResults.length) {
             handleItemClick(searchResults[activeItemIndex]);
           }
           break;
         case 'Tab':
           event.preventDefault();
-          if (activeItemIndex >= 0 && activeItemIndex < searchResults.length) {
+          if (commandMode && activeCommand && activeItemIndex >= 0 && activeItemIndex < searchResults.length) {
+            const activeItem = searchResults[activeItemIndex];
+            if (activeItem.type === 'tab' || activeItem.type === 'closeTabAction') {
+              setSelectedTabIds(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(activeItem.tab.id!)) {
+                  newSet.delete(activeItem.tab.id!);} 
+                 else {
+                  newSet.add(activeItem.tab.id!);} 
+                return newSet;
+              });
+            } else if (activeItem.type === 'action' && activeItem.id.startsWith('group-')) {
+              // If a group is selected, select all tabs in that group
+              const groupId = parseInt(activeItem.id.replace('group-', ''));
+              if (!isNaN(groupId)) {
+                chrome.runtime.sendMessage({ type: 'GET_TAB_GROUP_TABS', groupId }, (response) => {
+                  if (response.success) {
+                    setSelectedTabIds(new Set(response.tabIds));
+                  } else {
+                    console.error('Error fetching tabs in group:', response.message);
+                  }
+                });
+              }
+            }
+          } else if (activeItemIndex >= 0 && activeItemIndex < searchResults.length) {
             const activeItem = searchResults[activeItemIndex];
             setQuery(activeItem.title);
             // Refocus input and set cursor to end
@@ -264,7 +519,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [searchResults, activeItemIndex, handleItemClick, handleCloseTab, onClose, query]);
+  }, [searchResults, activeItemIndex, handleItemClick, handleCloseTab, onClose, query, commandMode, activeCommand, selectedTabIds]);
 
   // Focus the input field and fetch tabs when the component mounts
   useEffect(() => {
@@ -284,12 +539,42 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search tabs, or type 'g ' to google..."
+            placeholder={commandMode && activeCommand ? `${activeCommand} > ` : "Search tabs, or type 'g ' to google..."}
             className="w-full h-10 bg-gray-700 text-white placeholder-gray-400 p-2 rounded-lg outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        {selectedTabIds.size > 0 && (
+          <div className="p-2 border-b border-gray-700">
+            <h4 className="text-xs text-gray-400 mb-1">Selected Tabs:</h4>
+            <div className="flex flex-wrap gap-1">
+              {[...selectedTabIds].map(tabId => {
+                const tab = tabs.find(t => t.id === tabId);
+                return tab ? (
+                  <span key={tabId} className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    {tab.favIconUrl &&
+                      !tab.favIconUrl.startsWith('http://localhost') &&
+                      !tab.favIconUrl.startsWith('http://127.0.0.1') &&
+                      <img src={tab.favIconUrl} alt="" className="w-3 h-3" />
+                    }
+                    {tab.title}
+                    <button
+                      onClick={() => setSelectedTabIds(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(tabId);
+                        return newSet;
+                      })}
+                      className="ml-1 text-white hover:text-gray-200 focus:outline-none"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ) : null;
+              })}
+            </div>
+          </div>
+        )}
         <div className="border-y border-gray-700 max-h-96 overflow-y-auto">
           <ul>
             {searchResults.map((item, index) => (

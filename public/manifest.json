@@ -5,7 +5,8 @@
   "description": "A command palette for Chrome, inspired by IntelliJ's Shift+Shift.",
   "permissions": [
     "tabs",
-    "scripting"
+    "scripting",
+    "tabGroups"
   ],
   "background": {
     "service_worker": "background.js",

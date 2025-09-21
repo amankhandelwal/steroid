@@ -148,21 +148,23 @@ I will approach this in phases, focusing on one feature or a small set of relate
     *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
     *   Implement command mode for group creation, leveraging bulk selection.
     *   Use `chrome.tabs.group()` to create the group from selected tabs.
-    *   Implement a mechanism to prompt the user for a group name or assign a default.
+    *   The user should be prompted for a group name (or a default name can be provided).
 3.  **"Delete Tab Group" Command:**
     *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
-    *   List existing Chrome Tab Groups for selection (using `chrome.tabGroups.query()`).
-    *   Action to ungroup tabs using `chrome.tabs.ungroup()`.
+    *   This command will list existing Chrome Tab Groups for selection.
+    *   Selecting a group and pressing Enter will ungroup the tabs using `chrome.tabs.ungroup()` without closing the tabs.
 
 **Phase 5: Tab Group Enhancements & Refinements**
 
 1.  **Search Indexing for Tab Groups:**
-    *   Modify `CommandPalette.tsx`'s `searchResults` to include existing Chrome Tab Group names (from `chrome.tabGroups.query()`) in fuzzy search.
+    *   Modify `CommandPalette.tsx`'s `searchResults` to include existing Chrome Tab Group names when searching.
 2.  **Bulk Operations on Tab Groups:**
-    *   Extend existing bulk actions (e.g., "Close") to accept a tab group as a target.
-    *   Modify `background.ts` to query `chrome.tabGroups` for tab IDs within the group and apply the action.
+    *   Extend existing bulk actions (e.g., "Close Tab") to accept a tab group as a target. This will involve querying `chrome.tabGroups` to get tab IDs within the group and applying the action.
 3.  **Refine Command Mode Contextual Search:**
     *   Implement more sophisticated filtering for `fuse.js` based on `activeCommand`.
 
 # Gemini's execution summary
 *TODO - Populate post the execution of the entire plan is completed*
+
+# Issues:
+- [ ] Add Issues here
