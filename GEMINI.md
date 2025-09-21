@@ -16,17 +16,17 @@ You will follow the following steps during each execution Phase:
 4. You begin development only once user has given a confirmation to begin development
 5. You are to not change any global variables/versions on your own. You will always request the user to do that - if it is ever needed.
 6. Once the execution is completed. You are to update the plan_*.md file with the following
-```markdown
-
-# Gemini's execution summary
-*TODO*
-
-# Issues:
-- [ ] Add Issues here
-```
+    ```markdown
+    
+    # Gemini's execution summary
+    *TODO*
+    
+    # Issues:
+    - [ ] Add Issues here
+    ```
 7. You should update the Gemini's execution summary section in the plan_*.md file.
 8. Request the user to try the features out. User would add whatever issues they are facing, You should work on fixing the issues. Once done, User would mark the issue as done. You do not mark any issue as done.
 9. Once the user is satisfied, User will give a confirmation and the plan would be considered as Done.
 
 # Rules
-- You are not supposed to use git commands unless explicitly asked and initiated by the user. You would never ask the user to do a git commit proactively.
+- You are not supposed to use git commands (not even git status) unless explicitly asked and initiated by the user. You would never ask the user to do a git commit proactively.

@@ -20,5 +20,9 @@
   ],
   "action": {
     "default_title": "Steroid - Press Shift+Shift to open"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png"
   }
 }
