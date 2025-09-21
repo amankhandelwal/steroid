@@ -21,6 +21,7 @@ function App() {
         return;
       }
       setTabs(response || []);
+      console.log('Fetched tabs in App.tsx:', response);
     });
 
     chrome.runtime.sendMessage({ type: 'GET_PREVIOUS_TAB_DETAILS' }, (response) => {

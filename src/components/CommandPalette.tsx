@@ -130,7 +130,7 @@ const CommandPalette = ({
       }))
     ];
     console.log('Fuse searchableItems:', searchableItems);
-    return new Fuse(searchableItems, { keys: ['title', 'url'], includeScore: true, threshold: 0.4 });
+    return new Fuse(searchableItems, { keys: ['title', 'url'], includeScore: true, threshold: 0.0, distance: 1000, includeMatches: true });
   }, [tabs, tabGroups, commandSuggestions]);
 
   const searchResults = useMemo((): SearchResultItem[] => {
@@ -165,77 +165,77 @@ const CommandPalette = ({
     }
 
     // Handle specific command types that might override or augment fuzzy search
-    switch (parsedCommand.type) {
-      case 'google':
-      case 'youtube':
-        const engine = searchEngines.find(e => e.id === parsedCommand.type);
-        if (engine && parsedCommand.query) {
-          results.push({
-            type: 'action',
-            id: `${engine.id}-search`,
-            title: `${engine.name} "${parsedCommand.query}"`,
-            action: () => chrome.runtime.sendMessage({ type: 'OPEN_URL', url: engine.url.replace('%s', encodeURIComponent(parsedCommand.query)) })
-          });
-        }
-        break;
-      case 'openUrl':
-        if (parsedCommand.query) {
-          results.push({
-            type: 'action',
-            id: 'open-url',
-            title: `Open URL: ${parsedCommand.query}`,
-            action: () => {
-              let url = parsedCommand.query;
-              if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = `http://${url}`;
-              }
-              chrome.runtime.sendMessage({ type: 'OPEN_URL', url });
-            }
-          });
-        }
-        break;
-      case 'close':
-        // In 'close' command mode, or if 'close' command is typed, show closable tabs
-        if (parsedCommand.query) {
-          const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item).filter(item => item.type === 'tab').map(item => (item as TabItem).tab);
-          results.push(...filteredTabs.map(tab => ({
-            type: 'closeTabAction',
-            tab: tab,
-            title: `Close: ${tab.title}`
-          })));
-        } else {
-          // If 'close' command is typed without query, show all tabs as closable
-          results.push(...tabs.map(tab => ({
-            type: 'closeTabAction',
-            tab: tab,
-            title: `Close: ${tab.title}`
-          })));
-        }
-        break;
-      case 'previousTab':
-      case 'closeDuplicate':
-      case 'createTabGroup':
-      case 'deleteTabGroup':
-        // These commands are handled by fuzzy search now, but if directly typed, ensure they appear
-        const directCommandMatch = commandSuggestions.find(cmd => cmd.id.includes(parsedCommand.type));
-        if (directCommandMatch) {
-          // If it's the previousTab command, update its title dynamically
-          if (directCommandMatch.id === 'previous-tab-suggest' && previousTabDetails) {
-            results.push({
-              ...directCommandMatch,
-              title: `Previous Tab > ${previousTabDetails.title}`
-            });
-          } else {
-            results.push(directCommandMatch);
-          }
-        }
-        break;
-      default:
-        break;
-    }
-
-    // Perform fuzzy search if there's a query
     if (query.trim().length > 0) {
+      switch (parsedCommand.type) {
+        case 'google':
+        case 'youtube':
+          const engine = searchEngines.find(e => e.id === parsedCommand.type);
+          if (engine && parsedCommand.query) {
+            results.push({
+              type: 'action',
+              id: `${engine.id}-search`,
+              title: `${engine.name} "${parsedCommand.query}"`,
+              action: () => chrome.runtime.sendMessage({ type: 'OPEN_URL', url: engine.url.replace('%s', encodeURIComponent(parsedCommand.query)) })
+            });
+          }
+          break;
+        case 'openUrl':
+          if (parsedCommand.query) {
+            results.push({
+              type: 'action',
+              id: 'open-url',
+              title: `Open URL: ${parsedCommand.query}`,
+              action: () => {
+                let url = parsedCommand.query;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                  url = `http://${url}`;
+                }
+                chrome.runtime.sendMessage({ type: 'OPEN_URL', url });
+              }
+            });
+          }
+          break;
+        case 'close':
+          // In 'close' command mode, or if 'close' command is typed, show closable tabs
+          if (parsedCommand.query) {
+            const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item).filter(item => item.type === 'tab').map(item => (item as TabItem).tab);
+            results.push(...filteredTabs.map(tab => ({
+              type: 'closeTabAction',
+              tab: tab,
+              title: `Close: ${tab.title}`
+            })));
+          } else {
+            // If 'close' command is typed without query, show all tabs as closable
+            results.push(...tabs.map(tab => ({
+              type: 'closeTabAction',
+              tab: tab,
+              title: `Close: ${tab.title}`
+            })));
+          }
+          break;
+        case 'previousTab':
+        case 'closeDuplicate':
+        case 'createTabGroup':
+        case 'deleteTabGroup':
+          // These commands are handled by fuzzy search now, but if directly typed, ensure they appear
+          const directCommandMatch = commandSuggestions.find(cmd => cmd.id.includes(parsedCommand.type));
+          if (directCommandMatch) {
+            // If it's the previousTab command, update its title dynamically
+            if (directCommandMatch.id === 'previous-tab-suggest' && previousTabDetails) {
+              results.push({
+                ...directCommandMatch,
+                title: `Previous Tab > ${previousTabDetails.title}`
+              });
+            } else {
+              results.push(directCommandMatch);
+            }
+          }
+          break;
+        default:
+          break;
+      }
+
+      // Perform general fuzzy search for tabs, groups, and other commands
       const fuseResults = fuse.search(query);
       fuseResults.forEach(result => {
         const item = result.item;
@@ -263,7 +263,7 @@ const CommandPalette = ({
     results.forEach(item => {
       let key: string;
       if (item.type === 'tab') {
-        key = `tab-${item.tab.id}`;
+        key = `tab-${item.tab.id !== undefined ? item.tab.id : 'unknown'}`;
       } else if (item.type === 'action') {
         key = `action-${item.id}`;
       } else if (item.type === 'closeTabAction') {

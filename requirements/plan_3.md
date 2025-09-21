@@ -44,7 +44,6 @@ Here's a breakdown of the technical requirements for each feature:
     *   **Constraint:** Max stack size of 100. Older entries beyond this limit should be removed.
     *   **Constraint:** No duplicate entries. If a tab is already in the history and becomes active again, it should be moved to the top (most recent position) of the stack.
     *   Consider edge cases: tab closing, window changes, new tab opening.
-    *   The history should probably be per-window or global, depending on desired behavior. (Let's assume global for now, but this might need clarification).
     *   Persist this history across browser sessions (using `chrome.storage`).
 *   **Previous Tab Command:**
     *   Add a new command type and action in `commandParser.ts` and `CommandPalette.tsx`.
@@ -107,6 +106,9 @@ Here's a breakdown of the technical requirements for each feature:
 - Refined `handleItemClick` in `src/components/CommandPalette.tsx` to correctly enter command mode for actions requiring further interaction.
 - Added `storage` permission to `public/manifest.json` to resolve `TypeError: Cannot read properties of undefined (reading 'local')` in the background script.
 - Simplified `commandSuggestions` `useMemo` in `src/components/CommandPalette.tsx` to remove direct dependency on `previousTabDetails` and updated `searchResults` `useMemo` to dynamically set the "Previous Tab" title.
+- Restructured `searchResults` `useMemo` in `src/components/CommandPalette.tsx` to prioritize direct command matches and ensure tab search works correctly.
+- Lowered `Fuse.js` `threshold` to `0.2` in `src/components/CommandPalette.tsx` to make fuzzy search less strict.
+- Handled `undefined` `tab.id` in `uniqueResultsMap` key generation in `src/components/CommandPalette.tsx` for robustness.
 
 # Issues:
 - [ ] Search is broken - No tabs are being displayed. I'm not able to search or switch between tabs
@@ -116,3 +118,5 @@ Here's a breakdown of the technical requirements for each feature:
 - [ ] Command mode doesn't seem to be working at all. On pressing Enter on `Close Tab(s)` Command, nothing happens
 - [ ] Double shift has also stopped working now. Additionally I'm getting this error in the background service worker's logs: Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'local')
 - [ ] content.js:49 Uncaught ReferenceError: commandSuggestions is not defined
+- [ ] Can't search across all tabs. The Tab search is now broken
+- [ ] Tab search is still not working
