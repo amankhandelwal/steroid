@@ -56,7 +56,12 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         type: 'action',
         id: 'close-duplicate-suggest',
         title: 'Close Duplicate Tabs',
-        action: () => setQuery('close duplicate') // Auto-complete the command
+        action: () => chrome.runtime.sendMessage({ type: 'CLOSE_DUPLICATE_TABS' }, (response) => {
+          if (response && response.success) {
+            console.log(`Closed ${response.closedCount} duplicate tabs.`);
+            fetchTabs(); // Re-fetch tabs to update UI
+          }
+        })
       },
       {
         type: 'action',

@@ -36,20 +36,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   } else if (message.type === "CLOSE_DUPLICATE_TABS") {
     chrome.tabs.query({}, (tabs) => {
-      const urls = new Set<string>();
+      const urlMap = new Map<string, number[]>();
       const tabsToClose: number[] = [];
 
-      for (const tab of tabs) {
-        if (tab.url) {
-          if (urls.has(tab.url)) {
-            if (tab.id) {
-              tabsToClose.push(tab.id);
+      console.log('All tabs:', tabs);
+
+      tabs.forEach((tab) => {
+        if (tab.url && tab.id) {
+          try {
+            const url = new URL(tab.url);
+            url.hash = ''; // Ignore hash for duplicate detection
+            const normalizedUrl = url.toString();
+
+            if (!urlMap.has(normalizedUrl)) {
+              urlMap.set(normalizedUrl, []);
             }
-          } else {
-            urls.add(tab.url);
+            urlMap.get(normalizedUrl)?.push(tab.id);
+          } catch (e) {
+            console.error('Error normalizing URL:', tab.url, e);
           }
         }
-      }
+      });
+
+      console.log('URL Map after processing:', urlMap);
+
+      urlMap.forEach((tabIds, url) => {
+        if (tabIds.length > 1) {
+          console.log(`Found ${tabIds.length} duplicates for URL: ${url}. Keeping tab ID ${tabIds[0]} and closing the rest.`);
+          // Keep the first tab, close the rest
+          tabIds.slice(1).forEach((tabId) => {
+            tabsToClose.push(tabId);
+          });
+        }
+      });
+
+      console.log('Tabs to close:', tabsToClose);
 
       if (tabsToClose.length > 0) {
         chrome.tabs.remove(tabsToClose, () => {
