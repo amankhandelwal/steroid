@@ -42,44 +42,47 @@ export class CloseTabCommand extends BaseCommand {
   }
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
-    const argument = this.extractArgument(context.query);
+    console.log('CloseTabCommand.execute: context received:', context);
+    console.log('CloseTabCommand.execute: context.query:', context?.query);
+    console.log('CloseTabCommand.execute: typeof context:', typeof context);
+
+    if (!context) {
+      console.error('CloseTabCommand.execute: context is null/undefined');
+      return { success: false, error: 'Context is null/undefined' };
+    }
+
+    if (!context.query) {
+      console.error('CloseTabCommand.execute: context.query is null/undefined');
+      return { success: false, error: 'Context.query is null/undefined' };
+    }
+
+    console.log('CloseTabCommand.execute: About to extract argument from:', context.query);
+    console.log('CloseTabCommand.execute: this.aliases:', this.aliases);
+
+    // Extract argument manually to avoid any issues with this.extractArgument
+    let argument = context.query; // Default to the full query
+    const lowerQuery = context.query.toLowerCase().trim();
+    for (const alias of this.aliases) {
+      const lowerAlias = alias.toLowerCase();
+      if (lowerQuery.startsWith(lowerAlias)) {
+        argument = context.query.substring(alias.length).trim();
+        break;
+      }
+    }
+
+    console.log('CloseTabCommand.execute: argument extracted:', argument);
+
+    // Capture context values to avoid scoping issues
+    const fetchTabs = context.fetchTabs;
+    const selectedTabIds = context.selectedTabIds;
 
     return new Promise((resolve) => {
+      console.log('CloseTabCommand.execute: Inside Promise');
       if (!argument.trim()) {
-        // Close current tab
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs.length > 0 && tabs[0].id) {
-            chrome.runtime.sendMessage({
-              type: 'CLOSE_TAB',
-              tabId: tabs[0].id
-            }, (response) => {
-              if (chrome.runtime.lastError) {
-                resolve({
-                  success: false,
-                  error: chrome.runtime.lastError.message
-                });
-                return;
-              }
-
-              context.fetchTabs(); // Refresh tab list
-              resolve({
-                success: true,
-                message: 'Closed current tab',
-                shouldCloseModal: true
-              });
-            });
-          } else {
-            resolve({
-              success: false,
-              error: 'No active tab found'
-            });
-          }
-        });
-      } else {
-        // Close selected tabs based on search
+        console.log('CloseTabCommand.execute: No argument, closing current tab');
+        // Close current tab - send message to background script
         chrome.runtime.sendMessage({
-          type: 'CLOSE_TAB',
-          tabIds: Array.from(context.selectedTabIds)
+          type: 'CLOSE_CURRENT_TAB'
         }, (response) => {
           if (chrome.runtime.lastError) {
             resolve({
@@ -89,8 +92,37 @@ export class CloseTabCommand extends BaseCommand {
             return;
           }
 
-          context.fetchTabs(); // Refresh tab list
-          const count = context.selectedTabIds.size;
+          if (response && response.success) {
+            console.log('CloseTabCommand.execute: Successfully closed current tab');
+            fetchTabs(); // Refresh tab list
+            resolve({
+              success: true,
+              message: 'Closed current tab',
+              shouldCloseModal: true
+            });
+          } else {
+            resolve({
+              success: false,
+              error: response?.error || 'Failed to close current tab'
+            });
+          }
+        });
+      } else {
+        // Close selected tabs based on search
+        chrome.runtime.sendMessage({
+          type: 'CLOSE_TAB',
+          tabIds: Array.from(selectedTabIds)
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({
+              success: false,
+              error: chrome.runtime.lastError.message
+            });
+            return;
+          }
+
+          fetchTabs(); // Refresh tab list
+          const count = selectedTabIds.size;
           resolve({
             success: true,
             message: `Closed ${count} tab${count !== 1 ? 's' : ''}`,

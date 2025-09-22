@@ -2,10 +2,12 @@
 content.js:49 Steroid content script loaded.
 RotateCookiesPage?og_pid=538&rot=3&origin=https%3A%2F%2Fwww.google.com&exp_id=0:1 Unchecked runtime.lastError: The message port closed before a response was received.
 content.js:49 App: Key pressed: Shift Modal open: false
-content.js:49 App: Shift pressed, time diff: 1758551459846
+content.js:49 App: Shift pressed, time diff: 1758559249830
 content.js:49 App: Key pressed: Shift Modal open: false
-content.js:49 App: Shift pressed, time diff: 150
+content.js:49 App: Shift pressed, time diff: 144
 content.js:49 App: Double Shift detected, calling setIsOpen(true)
+content.js:49 CommandRegistry.findCommand: Finding command for query:
+content.js:49 CommandRegistry.findCommand: No command found for query:
 content.js:49 searchResults: Generating results...
 content.js:49 searchResults: tabs count: 0
 content.js:49 searchResults: tabGroups count: 0
@@ -58,59 +60,177 @@ content.js:49 searchResults: commandMode: false
 content.js:49 searchResults: currentCommand: null
 content.js:49 searchResults: Empty query, showing recent tabs
 content.js:49 searchResults: Recent tabs count: 10
-content.js:49 App: Key pressed: d Modal open: false
-content.js:49 useKeyboardNavigation: Key pressed: d Modal open: true
-content.js:49 CloseDuplicateTabsCommand.matches called with query: "d"
+app?eom=1&awwd=1&dpi=89978449&origin=https%3A%2F%2Fwww.google.com&cn=app&pid=1&spid=538&hl=en&dm=:1 Unchecked runtime.lastError: The message port closed before a response was received.
+content.js:49 App: Key pressed: c Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: c Modal open: true
+content.js:49 CommandRegistry.findCommand: Finding command for query: c
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "c"
 content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 CommandRegistry.findCommand: Found partial match with command: Close Duplicate Tabs
 content.js:49 searchResults: Generating results...
 content.js:49 searchResults: tabs count: 50
 content.js:49 searchResults: tabGroups count: 5
-content.js:49 searchResults: queryState: d
-content.js:49 searchResults: commandMode: false
-content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
-content.js:49 searchResults: Using current command: Close Duplicate Tabs
-content.js:49 searchResults: Command results: 1
-content.js:49 App: Key pressed: u Modal open: false
-content.js:49 useKeyboardNavigation: Key pressed: u Modal open: true
-content.js:49 CloseDuplicateTabsCommand.matches called with query: "du"
-content.js:49 CloseDuplicateTabsCommand.matches result: true
-content.js:49 searchResults: Generating results...
-content.js:49 searchResults: tabs count: 50
-content.js:49 searchResults: tabGroups count: 5
-content.js:49 searchResults: queryState: du
-content.js:49 searchResults: commandMode: false
-content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
-content.js:49 searchResults: Using current command: Close Duplicate Tabs
-content.js:49 searchResults: Command results: 1
-content.js:49 App: Key pressed: p Modal open: false
-content.js:49 useKeyboardNavigation: Key pressed: p Modal open: true
-content.js:49 CloseDuplicateTabsCommand.matches called with query: "dup"
-content.js:49 CloseDuplicateTabsCommand.matches result: true
-content.js:49 searchResults: Generating results...
-content.js:49 searchResults: tabs count: 50
-content.js:49 searchResults: tabGroups count: 5
-content.js:49 searchResults: queryState: dup
+content.js:49 searchResults: queryState: c
 content.js:49 searchResults: commandMode: false
 content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
 content.js:49 searchResults: Using current command: Close Duplicate Tabs
 content.js:49 searchResults: Command results: 1
 content.js:49 App: Key pressed: l Modal open: false
 content.js:49 useKeyboardNavigation: Key pressed: l Modal open: true
-content.js:49 CloseDuplicateTabsCommand.matches called with query: "dupl"
+content.js:49 CommandRegistry.findCommand: Finding command for query: cl
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "cl"
 content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 CommandRegistry.findCommand: Found partial match with command: Close Duplicate Tabs
 content.js:49 searchResults: Generating results...
 content.js:49 searchResults: tabs count: 50
 content.js:49 searchResults: tabGroups count: 5
-content.js:49 searchResults: queryState: dupl
+content.js:49 searchResults: queryState: cl
 content.js:49 searchResults: commandMode: false
 content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
 content.js:49 searchResults: Using current command: Close Duplicate Tabs
 content.js:49 searchResults: Command results: 1
+content.js:49 App: Key pressed: o Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: o Modal open: true
+content.js:49 CommandRegistry.findCommand: Finding command for query: clo
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "clo"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 CommandRegistry.findCommand: Found partial match with command: Close Duplicate Tabs
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: clo
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 1
+content.js:49 App: Key pressed: s Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: s Modal open: true
+content.js:49 CommandRegistry.findCommand: Finding command for query: clos
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "clos"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 CommandRegistry.findCommand: Found partial match with command: Close Duplicate Tabs
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: clos
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 1
+content.js:49 App: Key pressed: e Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: e Modal open: true
+content.js:49 CommandRegistry.findCommand: Finding command for query: close
+content.js:49 CommandRegistry.findCommand: Found exact match with alias: close command: Close
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: close
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: tg {id: 'close_single', name: 'Close', aliases: Array(3), description: 'Close the current tab or a specific tab', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close
+content.js:49 searchResults: Command results: 1
 content.js:49 App: Key pressed: Enter Modal open: false
 content.js:49 useKeyboardNavigation: Key pressed: Enter Modal open: true
-app?eom=1&awwd=1&dpi=89978449&origin=https%3A%2F%2Fwww.google.com&cn=app&pid=1&spid=538&hl=en&dm=:1 Unchecked runtime.lastError: The message port closed before a response was received.
+content.js:49 SelectionKeys: Enter handler called, context: {isModalOpen: true, commandMode: false, hasSelection: false, selectedCount: 0, isInputFocused: false, …}
+content.js:49 SelectionKeys: Calling executeSelected
+content.js:49 CommandPaletteNew: handleExecuteSelected called
+content.js:49 CommandPaletteNew: activeItemIndex: 0
+content.js:49 CommandPaletteNew: searchResults length: 1
+content.js:49 CommandPaletteNew: activeItem: {type: 'action', id: 'close_single-suggestion', title: 'Close current tab', action: ƒ}
+content.js:49 CommandPaletteNew: Processing action item: close_single-suggestion Close current tab
+content.js:49 CommandPaletteNew: This is a command suggestion
+content.js:49 CommandPaletteNew: Command ID: close_single
+content.js:49 CommandPaletteNew: Found command: tg {id: 'close_single', name: 'Close', aliases: Array(3), description: 'Close the current tab or a specific tab', mode: 'SingleExecution', …}
+content.js:49 CommandPaletteNew: Command mode: SingleExecution
+content.js:49 CommandPaletteNew: Executing single execution command
+content.js:49 useCommandPalette.executeCommand: commandId: close_single
+content.js:49 useCommandPalette.executeCommand: queryState: close
+content.js:49 useCommandPalette.executeCommand: selectedTabIds: Set(0) {size: 0}
+content.js:49 useCommandPalette.executeCommand: commandMode: false
+content.js:49 useCommandPalette.executeCommand: context: {query: 'close', selectedTabIds: Set(0), commandMode: false, onClose: ƒ, setCommandMode: ƒ, …}
+content.js:49 CloseTabCommand.execute: context received: {query: 'close', selectedTabIds: Set(0), commandMode: false, onClose: ƒ, setCommandMode: ƒ, …}
+content.js:49 CloseTabCommand.execute: context.query: close
+content.js:49 CloseTabCommand.execute: typeof context: object
+content.js:49 CloseTabCommand.execute: About to extract argument from: close
+content.js:49 CloseTabCommand.execute: this.aliases: (3) ['close', 'close tab', 'x']
+content.js:49 CloseTabCommand.execute: argument extracted:
+content.js:49 CloseTabCommand.execute: Inside Promise
+content.js:49 CloseTabCommand.execute: No argument, closing current tab
+content.js:49 Error executing command Close: TypeError: Cannot read properties of undefined (reading 'query')
+    at content.js:49:38737
+    at new Promise (<anonymous>)
+    at tg.execute (content.js:49:38311)
+    at ig.executeCommand (content.js:49:49544)
+    at content.js:49:54242
+    at Object.executeSelected (content.js:49:67535)
+    at Object.handler (content.js:49:57389)
+    at $t.handleKeyEvent (content.js:49:55557)
+    at HTMLDocument._ (content.js:49:60002)
+executeCommand @ content.js:49
+await in executeCommand
+(anonymous) @ content.js:49
+(anonymous) @ content.js:49
+(anonymous) @ content.js:49
+handleKeyEvent @ content.js:49
+_ @ content.js:49
+content.js:49 Command execution failed: Cannot read properties of undefined (reading 'query')
+(anonymous) @ content.js:49
+await in (anonymous)
+(anonymous) @ content.js:49
+(anonymous) @ content.js:49
+handleKeyEvent @ content.js:49
+_ @ content.js:49
 content.js:49 App: Key pressed: Enter Modal open: false
 content.js:49 useKeyboardNavigation: Key pressed: Enter Modal open: true
+content.js:49 SelectionKeys: Enter handler called, context: {isModalOpen: true, commandMode: false, hasSelection: false, selectedCount: 0, isInputFocused: false, …}
+content.js:49 SelectionKeys: Calling executeSelected
+content.js:49 CommandPaletteNew: handleExecuteSelected called
+content.js:49 CommandPaletteNew: activeItemIndex: 0
+content.js:49 CommandPaletteNew: searchResults length: 1
+content.js:49 CommandPaletteNew: activeItem: {type: 'action', id: 'close_single-suggestion', title: 'Close current tab', action: ƒ}
+content.js:49 CommandPaletteNew: Processing action item: close_single-suggestion Close current tab
+content.js:49 CommandPaletteNew: This is a command suggestion
+content.js:49 CommandPaletteNew: Command ID: close_single
+content.js:49 CommandPaletteNew: Found command: tg {id: 'close_single', name: 'Close', aliases: Array(3), description: 'Close the current tab or a specific tab', mode: 'SingleExecution', …}
+content.js:49 CommandPaletteNew: Command mode: SingleExecution
+content.js:49 CommandPaletteNew: Executing single execution command
+content.js:49 useCommandPalette.executeCommand: commandId: close_single
+content.js:49 useCommandPalette.executeCommand: queryState: close
+content.js:49 useCommandPalette.executeCommand: selectedTabIds: Set(0) {size: 0}
+content.js:49 useCommandPalette.executeCommand: commandMode: false
+content.js:49 useCommandPalette.executeCommand: context: {query: 'close', selectedTabIds: Set(0), commandMode: false, onClose: ƒ, setCommandMode: ƒ, …}
+content.js:49 CloseTabCommand.execute: context received: {query: 'close', selectedTabIds: Set(0), commandMode: false, onClose: ƒ, setCommandMode: ƒ, …}
+content.js:49 CloseTabCommand.execute: context.query: close
+content.js:49 CloseTabCommand.execute: typeof context: object
+content.js:49 CloseTabCommand.execute: About to extract argument from: close
+content.js:49 CloseTabCommand.execute: this.aliases: (3) ['close', 'close tab', 'x']
+content.js:49 CloseTabCommand.execute: argument extracted:
+content.js:49 CloseTabCommand.execute: Inside Promise
+content.js:49 CloseTabCommand.execute: No argument, closing current tab
+content.js:49 Error executing command Close: TypeError: Cannot read properties of undefined (reading 'query')
+    at content.js:49:38737
+    at new Promise (<anonymous>)
+    at tg.execute (content.js:49:38311)
+    at ig.executeCommand (content.js:49:49544)
+    at content.js:49:54242
+    at Object.executeSelected (content.js:49:67535)
+    at Object.handler (content.js:49:57389)
+    at $t.handleKeyEvent (content.js:49:55557)
+    at HTMLDocument._ (content.js:49:60002)
+executeCommand @ content.js:49
+await in executeCommand
+(anonymous) @ content.js:49
+(anonymous) @ content.js:49
+(anonymous) @ content.js:49
+handleKeyEvent @ content.js:49
+_ @ content.js:49
+content.js:49 Command execution failed: Cannot read properties of undefined (reading 'query')
+(anonymous) @ content.js:49
+await in (anonymous)
+(anonymous) @ content.js:49
+(anonymous) @ content.js:49
+handleKeyEvent @ content.js:49
+_ @ content.js:49
 content.js:49 App: Key pressed: Escape Modal open: false
 content.js:49 useKeyboardNavigation: Key pressed: Escape Modal open: true
 content.js:49 SelectionKeys: Escape handler called

@@ -369,6 +369,31 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     });
     return true;
 
+  } else if (message.type === "CLOSE_CURRENT_TAB") {
+    // Close the currently active tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (chrome.runtime.lastError || tabs.length === 0) {
+        safeSendResponse(sendResponse, { success: false, error: 'No active tab found' });
+        return;
+      }
+
+      const currentTabId = tabs[0].id;
+      if (currentTabId) {
+        chrome.tabs.remove(currentTabId, () => {
+          if (chrome.runtime.lastError) {
+            console.error('Error closing current tab:', chrome.runtime.lastError.message);
+            safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
+          } else {
+            console.log('Successfully closed current tab');
+            safeSendResponse(sendResponse, { success: true, message: 'Closed current tab' });
+          }
+        });
+      } else {
+        safeSendResponse(sendResponse, { success: false, error: 'Current tab has no ID' });
+      }
+    });
+    return true;
+
   } else if (message.type === "CLOSE_TAB") {
     // Support both single tabId and array of tabIds
     const tabIds = Array.isArray(message.tabIds) ? message.tabIds : (message.tabId ? [message.tabId] : []);

@@ -37,21 +37,33 @@ export class CommandRegistry {
    */
   findCommand(query: string): BaseCommand | null {
     const lowerQuery = query.toLowerCase().trim();
+    console.log('CommandRegistry.findCommand: Finding command for query:', lowerQuery);
 
-    // First try exact alias matches
+    // First try exact alias matches (query equals alias exactly)
+    for (const [alias, command] of this.commandsByAlias) {
+      if (lowerQuery === alias) {
+        console.log('CommandRegistry.findCommand: Found exact match with alias:', alias, 'command:', command.name);
+        return command;
+      }
+    }
+
+    // Then try prefix matches (query starts with alias)
     for (const [alias, command] of this.commandsByAlias) {
       if (lowerQuery.startsWith(alias)) {
+        console.log('CommandRegistry.findCommand: Found prefix match with alias:', alias, 'command:', command.name);
         return command;
       }
     }
 
-    // Then try partial matches
+    // Finally try partial matches using command.matches()
     for (const command of this.commands.values()) {
       if (command.matches(query)) {
+        console.log('CommandRegistry.findCommand: Found partial match with command:', command.name);
         return command;
       }
     }
 
+    console.log('CommandRegistry.findCommand: No command found for query:', lowerQuery);
     return null;
   }
 

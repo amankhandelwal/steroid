@@ -218,6 +218,11 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   // Execute specific command by ID
   const executeCommand = useCallback(async (commandId: string) => {
+    console.log('useCommandPalette.executeCommand: commandId:', commandId);
+    console.log('useCommandPalette.executeCommand: queryState:', queryState);
+    console.log('useCommandPalette.executeCommand: selectedTabIds:', selectedTabIds);
+    console.log('useCommandPalette.executeCommand: commandMode:', commandMode);
+
     const context: CommandExecutionContext = {
       query: queryState,
       selectedTabIds,
@@ -230,6 +235,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       fetchTabs,
       fetchTabGroups
     };
+
+    console.log('useCommandPalette.executeCommand: context:', context);
 
     try {
       const result = await commandRegistry.executeCommand(commandId, context);
