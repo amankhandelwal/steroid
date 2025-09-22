@@ -85,7 +85,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 // Constants for tab history management
-const MAX_HISTORY_SIZE = 500;
+const MAX_HISTORY_SIZE = 100;
 const HISTORY_STORAGE_KEY = 'tabHistory';
 const ACCESS_TIME_STORAGE_KEY = 'tabAccessTimes';
 
@@ -278,7 +278,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         // Sort by last accessed (most recent first) when no search query
         tabsWithAccessTime.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
 
-        // Limit to most recent 50 tabs for performance
+        // Limit to most recent tabs for performance
         const limitedTabs = tabsWithAccessTime.slice(0, 50);
 
         safeSendResponse(sendResponse, limitedTabs);

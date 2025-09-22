@@ -34,7 +34,7 @@ function App() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []); // Empty dependency array means this effect runs once on mount
+  }, [isOpen]); // Include isOpen in dependency array to avoid stale closure
 
   return (
     <>
