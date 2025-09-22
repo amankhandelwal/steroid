@@ -46,6 +46,12 @@ export interface CommandExecutionResult {
   shouldEnterCommandMode?: boolean;
   newCommandName?: string;
   error?: string;
+  needsInput?: boolean;
+  inputConfig?: {
+    title: string;
+    placeholder?: string;
+    defaultValue?: string;
+  };
 }
 
 export interface CommandExecutionContext {

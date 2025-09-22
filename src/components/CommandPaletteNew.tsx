@@ -9,6 +9,7 @@ import { commandRegistry } from '../commands';
 import SearchResultItem from './SearchResultItem';
 import CommandPaletteHeader from './CommandPaletteHeader';
 import CommandPaletteFooter from './CommandPaletteFooter';
+import InputDialog from './InputDialog';
 
 interface CommandPaletteProps {
   onClose: () => void;
@@ -23,6 +24,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     activeItemIndex,
     commandMode,
     selectedTabIds,
+    showInputDialog,
+    inputConfig,
 
     // Actions
     setQuery,
@@ -34,6 +37,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     selectAll,
     executeCommand,
     executeCurrentCommand,
+    handleInputSubmit,
+    handleInputCancel,
     reset,
 
     // Computed
@@ -248,6 +253,17 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           hasSelection={hasSelection}
         />
       </div>
+
+      {/* Input Dialog */}
+      {showInputDialog && inputConfig && (
+        <InputDialog
+          title={inputConfig.title}
+          placeholder={inputConfig.placeholder}
+          defaultValue={inputConfig.defaultValue}
+          onSubmit={handleInputSubmit}
+          onCancel={handleInputCancel}
+        />
+      )}
     </div>
   );
 };

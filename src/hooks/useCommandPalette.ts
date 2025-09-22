@@ -17,6 +17,12 @@ export interface UseCommandPaletteReturn {
   commandMode: boolean;
   activeCommand: string | null;
   selectedTabIds: Set<number>;
+  showInputDialog: boolean;
+  inputConfig: {
+    title: string;
+    placeholder?: string;
+    defaultValue?: string;
+  } | null;
 
   // Actions
   setQuery: (query: string) => void;
@@ -31,6 +37,8 @@ export interface UseCommandPaletteReturn {
   fetchTabGroups: () => void;
   executeCommand: (commandId: string) => Promise<void>;
   executeCurrentCommand: () => Promise<void>;
+  handleInputSubmit: (value: string) => void;
+  handleInputCancel: () => void;
   reset: () => void;
 
   // Computed
@@ -53,6 +61,16 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
   const [commandMode, setCommandMode] = useState(false);
   const [activeCommand, setActiveCommand] = useState<string | null>(null);
   const [selectedTabIds, setSelectedTabIds] = useState<Set<number>>(new Set());
+  const [showInputDialog, setShowInputDialog] = useState(false);
+  const [inputConfig, setInputConfig] = useState<{
+    title: string;
+    placeholder?: string;
+    defaultValue?: string;
+  } | null>(null);
+  const [pendingCommandExecution, setPendingCommandExecution] = useState<{
+    commandId: string;
+    context: CommandExecutionContext;
+  } | null>(null);
 
   // Debounced query setter for performance
   const debouncedSetQuery = useMemo(
@@ -188,10 +206,10 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
   }, [tabs]);
 
   // Execute specific command by ID
-  const executeCommand = useCallback(async (commandId: string) => {
+  const executeCommand = useCallback(async (commandId: string, inputValue?: string) => {
 
     const context: CommandExecutionContext = {
-      query: queryState,
+      query: inputValue || queryState,
       selectedTabIds,
       commandMode,
       tabGroups,
@@ -208,6 +226,14 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       const result = await commandRegistry.executeCommand(commandId, context);
 
       if (result.success) {
+        if (result.needsInput && result.inputConfig) {
+          // Command needs additional input - show input dialog
+          setInputConfig(result.inputConfig);
+          setShowInputDialog(true);
+          setPendingCommandExecution({ commandId, context });
+          return;
+        }
+
         if (result.shouldCloseModal) {
           onClose();
         }
@@ -232,6 +258,35 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     await executeCommand(currentCommand.id);
   }, [currentCommand, executeCommand]);
 
+  // Handle input dialog submission
+  const handleInputSubmit = useCallback((value: string) => {
+    if (pendingCommandExecution) {
+      // Execute the command with the provided input value
+      const context = {
+        ...pendingCommandExecution.context,
+        query: value
+      };
+
+      commandRegistry.executeCommand(pendingCommandExecution.commandId, context).then((result) => {
+        if (result.success && result.shouldCloseModal) {
+          onClose();
+        }
+      });
+    }
+
+    // Hide input dialog and clear pending execution
+    setShowInputDialog(false);
+    setInputConfig(null);
+    setPendingCommandExecution(null);
+  }, [pendingCommandExecution, onClose]);
+
+  // Handle input dialog cancellation
+  const handleInputCancel = useCallback(() => {
+    setShowInputDialog(false);
+    setInputConfig(null);
+    setPendingCommandExecution(null);
+  }, []);
+
   // Reset state
   const reset = useCallback(() => {
     setQueryState('');
@@ -239,6 +294,9 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     setCommandMode(false);
     setActiveCommand(null);
     setSelectedTabIds(new Set());
+    setShowInputDialog(false);
+    setInputConfig(null);
+    setPendingCommandExecution(null);
   }, []);
 
   // Computed values
@@ -255,6 +313,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     commandMode,
     activeCommand,
     selectedTabIds,
+    showInputDialog,
+    inputConfig,
 
     // Actions
     setQuery,
@@ -269,6 +329,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     fetchTabGroups,
     executeCommand,
     executeCurrentCommand,
+    handleInputSubmit,
+    handleInputCancel,
     reset,
 
     // Computed

@@ -55,10 +55,24 @@ export class CreateTabGroupCommand extends BaseCommand {
       };
     }
 
-    // Extract group name from query
+    // Check if group name is provided in query (from input dialog)
     const argument = this.extractArgument(context.query);
-    const groupName = argument.trim() || `Group ${new Date().toLocaleTimeString()}`;
+    const groupName = argument.trim();
 
+    if (!groupName) {
+      // No group name provided - request input from user
+      return {
+        success: true,
+        needsInput: true,
+        inputConfig: {
+          title: 'Create Tab Group',
+          placeholder: 'Enter group name...',
+          defaultValue: `Group ${new Date().toLocaleTimeString()}`
+        }
+      };
+    }
+
+    // Group name provided - create the group
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({
         type: 'CREATE_TAB_GROUP',
