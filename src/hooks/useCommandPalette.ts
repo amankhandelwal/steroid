@@ -41,7 +41,9 @@ export interface UseCommandPaletteReturn {
 export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn {
   // Initialize commands on first use
   useEffect(() => {
+    console.log('useCommandPalette: Initializing commands...');
     initializeCommands();
+    console.log('useCommandPalette: Commands initialized');
   }, []);
 
   // State
@@ -66,17 +68,27 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   // Fetch tabs
   const fetchTabs = useCallback(async () => {
+    console.log('fetchTabs: Starting to fetch tabs...');
     const response = await sendMessageSafely({ type: 'GET_TABS' }, 'fetchTabs');
+    console.log('fetchTabs: Response received:', response);
     if (response) {
       setTabs(response);
+      console.log('fetchTabs: Tabs set, count:', response.length);
+    } else {
+      console.log('fetchTabs: No response received');
     }
   }, []);
 
   // Fetch tab groups
   const fetchTabGroups = useCallback(async () => {
+    console.log('fetchTabGroups: Starting to fetch tab groups...');
     const response = await sendMessageSafely({ type: 'GET_TAB_GROUPS' }, 'fetchTabGroups');
+    console.log('fetchTabGroups: Response received:', response);
     if (response) {
       setTabGroups(response);
+      console.log('fetchTabGroups: Tab groups set, count:', response.length);
+    } else {
+      console.log('fetchTabGroups: No response received');
     }
   }, []);
 
@@ -99,6 +111,13 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   // Generate search results
   const searchResults = useMemo(() => {
+    console.log('searchResults: Generating results...');
+    console.log('searchResults: tabs count:', tabs.length);
+    console.log('searchResults: tabGroups count:', tabGroups.length);
+    console.log('searchResults: queryState:', queryState);
+    console.log('searchResults: commandMode:', commandMode);
+    console.log('searchResults: currentCommand:', currentCommand);
+
     const context: CommandContext = {
       tabs,
       tabGroups,
@@ -109,6 +128,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     };
 
     if (currentCommand) {
+      console.log('searchResults: Using current command:', currentCommand.name);
       // If we have a specific command, get its search results
       let results = currentCommand.getSearchResults(context);
 
@@ -122,20 +142,26 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
         });
       }
 
+      console.log('searchResults: Command results:', results.length);
       return results;
     }
 
     // No specific command, show command suggestions and tabs
     if (!queryState.trim()) {
+      console.log('searchResults: Empty query, showing recent tabs');
       // Empty query - show recent tabs
-      return tabs.slice(0, 10).map(tab => ({
+      const recentTabs = tabs.slice(0, 10).map(tab => ({
         type: 'tab' as const,
         tab
       }));
+      console.log('searchResults: Recent tabs count:', recentTabs.length);
+      return recentTabs;
     }
 
+    console.log('searchResults: Non-empty query, showing suggestions and matching tabs');
     // Show command suggestions
     const suggestions = commandRegistry.getCommandSuggestions(queryState);
+    console.log('searchResults: Command suggestions count:', suggestions.length);
 
     // Also show matching tabs
     const lowerQuery = queryState.toLowerCase();
@@ -149,8 +175,11 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
         type: 'tab' as const,
         tab
       }));
+    console.log('searchResults: Matching tabs count:', matchingTabs.length);
 
-    return [...suggestions, ...matchingTabs];
+    const finalResults = [...suggestions, ...matchingTabs];
+    console.log('searchResults: Final results count:', finalResults.length);
+    return finalResults;
   }, [tabs, tabGroups, selectedTabIds, queryState, commandMode, activeCommand, currentCommand]);
 
   // Selection management

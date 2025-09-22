@@ -288,10 +288,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         // Limit to most recent 50 tabs for performance
         const limitedTabs = tabsWithAccessTime.slice(0, 50);
 
-        safeSendResponse(safeSendResponse, limitedTabs);
+        safeSendResponse(sendResponse, limitedTabs);
       } catch (error) {
         console.error('Error fetching tabs with access times:', error);
-        safeSendResponse(safeSendResponse, tabs); // Fallback to original tabs
+        safeSendResponse(sendResponse, tabs); // Fallback to original tabs
       }
     });
     return true; // Asynchronous response
@@ -300,7 +300,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       try {
         if (tabs.length === 0) {
-          safeSendResponse(safeSendResponse, { error: 'No active tab found' });
+          safeSendResponse(sendResponse, { error: 'No active tab found' });
           return;
         }
 
@@ -310,20 +310,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (previousTab) {
           // Get tab details
           const tabDetails = await chrome.tabs.get(previousTab.tabId);
-          safeSendResponse(safeSendResponse, {
+          safeSendResponse(sendResponse, {
             success: true,
             tab: tabDetails,
             previousTabEntry: previousTab
           });
         } else {
-          safeSendResponse(safeSendResponse, {
+          safeSendResponse(sendResponse, {
             success: false,
             message: 'No previous tab available'
           });
         }
       } catch (error) {
         console.error('Error getting previous tab:', error);
-        safeSendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+        safeSendResponse(sendResponse, { error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
     return true; // Asynchronous response
@@ -332,7 +332,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       try {
         if (tabs.length === 0) {
-          safeSendResponse({ error: 'No active tab found' });
+          safeSendResponse(sendResponse, { error: 'No active tab found' });
           return;
         }
 
@@ -345,16 +345,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           if (previousTab.windowId) {
             chrome.windows.update(previousTab.windowId, { focused: true });
           }
-          safeSendResponse({ success: true });
+          safeSendResponse(sendResponse, { success: true });
         } else {
-          safeSendResponse({
+          safeSendResponse(sendResponse, {
             success: false,
             message: 'No previous tab available'
           });
         }
       } catch (error) {
         console.error('Error switching to previous tab:', error);
-        safeSendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+        safeSendResponse(sendResponse, { error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
     return true; // Asynchronous response
@@ -374,17 +374,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const tabIds = Array.isArray(message.tabIds) ? message.tabIds : (message.tabId ? [message.tabId] : []);
 
     if (tabIds.length === 0) {
-      safeSendResponse({ success: false, error: 'No tab IDs provided' });
+      safeSendResponse(sendResponse, { success: false, error: 'No tab IDs provided' });
       return;
     }
 
     chrome.tabs.remove(tabIds, () => {
       if (chrome.runtime.lastError) {
         console.error('Error closing tabs:', chrome.runtime.lastError.message);
-        safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
+        safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
       } else {
         console.log(`Successfully closed ${tabIds.length} tab(s)`);
-        safeSendResponse({ success: true, closedCount: tabIds.length });
+        safeSendResponse(sendResponse, { success: true, closedCount: tabIds.length });
       }
     });
     return true;
@@ -434,10 +434,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
       if (tabsToClose.length > 0) {
         chrome.tabs.remove(tabsToClose, () => {
-          safeSendResponse({ success: true, closedCount: tabsToClose.length });
+          safeSendResponse(sendResponse, { success: true, closedCount: tabsToClose.length });
         });
       } else {
-        safeSendResponse({ success: true, closedCount: 0 });
+        safeSendResponse(sendResponse, { success: true, closedCount: 0 });
       }
     });
     return true; // Asynchronous response
@@ -446,14 +446,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const { tabIds, groupName } = message;
 
     if (!tabIds || tabIds.length === 0) {
-      safeSendResponse({ success: false, error: 'No tab IDs provided' });
+      safeSendResponse(sendResponse, { success: false, error: 'No tab IDs provided' });
       return;
     }
 
     chrome.tabs.group({ tabIds }, (groupId) => {
       if (chrome.runtime.lastError) {
         console.error('Error creating tab group:', chrome.runtime.lastError.message);
-        safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
+        safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
       } else {
         // Set group name if provided
         if (groupName) {
@@ -461,12 +461,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             if (chrome.runtime.lastError) {
               console.error('Error setting group name:', chrome.runtime.lastError.message);
             }
-            safeSendResponse({ success: true, groupId, message: `Created group "${groupName}" with ${tabIds.length} tabs` });
+            safeSendResponse(sendResponse, { success: true, groupId, message: `Created group "${groupName}" with ${tabIds.length} tabs` });
           });
         } else {
           const defaultName = `Group ${new Date().toLocaleTimeString()}`;
           chrome.tabGroups.update(groupId, { title: defaultName }, () => {
-            safeSendResponse({ success: true, groupId, message: `Created group "${defaultName}" with ${tabIds.length} tabs` });
+            safeSendResponse(sendResponse, { success: true, groupId, message: `Created group "${defaultName}" with ${tabIds.length} tabs` });
           });
         }
       }
@@ -477,7 +477,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const { groupId } = message;
 
     if (!groupId) {
-      safeSendResponse({ success: false, error: 'No group ID provided' });
+      safeSendResponse(sendResponse, { success: false, error: 'No group ID provided' });
       return;
     }
 
@@ -485,7 +485,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabs.query({ groupId }, (tabs) => {
       if (chrome.runtime.lastError) {
         console.error('Error querying group tabs:', chrome.runtime.lastError.message);
-        safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
+        safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
         return;
       }
 
@@ -496,14 +496,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         chrome.tabs.ungroup(tabIds as [number, ...number[]], () => {
           if (chrome.runtime.lastError) {
             console.error('Error ungrouping tabs:', chrome.runtime.lastError.message);
-            safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
+            safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
           } else {
             console.log(`Successfully ungrouped ${tabIds.length} tabs from group ${groupId}`);
-            safeSendResponse({ success: true, message: `Ungrouped ${tabIds.length} tabs` });
+            safeSendResponse(sendResponse, { success: true, message: `Ungrouped ${tabIds.length} tabs` });
           }
         });
       } else {
-        safeSendResponse({ success: false, error: 'No tabs found in group' });
+        safeSendResponse(sendResponse, { success: false, error: 'No tabs found in group' });
       }
     });
     return true; // Asynchronous response
@@ -512,9 +512,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabGroups.query({}, (groups) => {
       if (chrome.runtime.lastError) {
         console.error('Error fetching tab groups:', chrome.runtime.lastError.message);
-        safeSendResponse([]);
+        safeSendResponse(sendResponse, []);
       } else {
-        safeSendResponse(groups);
+        safeSendResponse(sendResponse, groups);
       }
     });
     return true; // Asynchronous response
