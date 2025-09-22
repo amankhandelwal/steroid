@@ -103,14 +103,14 @@ export class SelectionKeys {
       }
     });
 
-    // Cmd+Enter - Execute current command (Mac primary)
-    const cmdEnterHandler = KeybindingManager.createHandler('enter', (event) => {
+    // Shift+Enter - Execute current command (universal)
+    const shiftEnterHandler = KeybindingManager.createHandler('enter', (event) => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.commandMode && !context.isInputFocused) {
         this.actions.executeCurrentCommand();
         return false; // Prevent default
       }
-    }, { meta: true });
+    }, { shift: true });
 
     // Ctrl+Enter - Execute current command (universal fallback)
     const ctrlEnterHandler = KeybindingManager.createHandler('enter', (event) => {
@@ -131,7 +131,7 @@ export class SelectionKeys {
       selectAllHandler,
       clearSelectionHandler,
       deleteHandler,
-      cmdEnterHandler,
+      shiftEnterHandler,
       ctrlEnterHandler
     ];
 

@@ -9,9 +9,6 @@ interface CommandPaletteFooterProps {
 }
 
 const CommandPaletteFooter = ({ commandMode, hasResults, hasSelection }: CommandPaletteFooterProps) => {
-  // Detect platform for appropriate modifier key display
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const commandKey = isMac ? '⌘' : 'Ctrl';
   return (
     <div className="p-3 border-t border-gray-200 text-xs text-gray-500 bg-gray-50">
       <div className="flex justify-between items-center">
@@ -40,7 +37,7 @@ const CommandPaletteFooter = ({ commandMode, hasResults, hasSelection }: Command
             <span>clear</span>
             {hasSelection && (
               <>
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">{commandKey}+Enter</kbd>
+                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Shift+Enter</kbd>
                 <span>execute</span>
               </>
             )}
