@@ -1,6 +1,6 @@
 import searchEngines from '../config/searchEngines.json';
 
-export type CommandType = 'tabSearch' | 'google' | 'youtube' | 'close' | 'closeDuplicate' | 'openUrl';
+export type CommandType = 'tabSearch' | 'google' | 'youtube' | 'close' | 'closeDuplicate' | 'openUrl' | 'previousTab' | 'createTabGroup' | 'deleteTabGroup';
 
 export interface ParsedCommand {
   type: CommandType;
@@ -28,6 +28,30 @@ export function parseCommand(input: string): ParsedCommand {
         };
       }
     }
+  }
+
+  if (lowerInput.startsWith('previous tab') || lowerInput.startsWith('prev tab') || lowerInput === 'previous' || lowerInput === 'prev') {
+    return {
+      type: 'previousTab',
+      query: '',
+      originalQuery: input,
+    };
+  }
+
+  if (lowerInput.startsWith('create tab group') || lowerInput.startsWith('group tabs') || lowerInput.startsWith('create group')) {
+    return {
+      type: 'createTabGroup',
+      query: input.substring(input.indexOf(' ') + 1).trim(),
+      originalQuery: input,
+    };
+  }
+
+  if (lowerInput.startsWith('delete tab group') || lowerInput.startsWith('ungroup') || lowerInput.startsWith('remove group')) {
+    return {
+      type: 'deleteTabGroup',
+      query: input.substring(input.indexOf(' ') + 1).trim(),
+      originalQuery: input,
+    };
   }
 
   if (lowerInput.startsWith('close duplicate')) {

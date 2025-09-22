@@ -4,11 +4,259 @@
  */
 console.log("Steroid background script loaded.");
 
+// Constants for tab history management
+const MAX_HISTORY_SIZE = 100;
+const HISTORY_STORAGE_KEY = 'tabHistory';
+const ACCESS_TIME_STORAGE_KEY = 'tabAccessTimes';
+
+// Tab history management utilities
+interface TabHistoryEntry {
+  tabId: number;
+  windowId: number;
+  timestamp: number;
+}
+
+/**
+ * Get the current tab history from storage
+ */
+async function getTabHistory(): Promise<TabHistoryEntry[]> {
+  const result = await chrome.storage.local.get(HISTORY_STORAGE_KEY);
+  return result[HISTORY_STORAGE_KEY] || [];
+}
+
+/**
+ * Save tab history to storage
+ */
+async function saveTabHistory(history: TabHistoryEntry[]): Promise<void> {
+  await chrome.storage.local.set({ [HISTORY_STORAGE_KEY]: history });
+}
+
+/**
+ * Add a tab to the history stack
+ */
+async function pushTabToHistory(tabId: number, windowId: number): Promise<void> {
+  const history = await getTabHistory();
+  const timestamp = Date.now();
+
+  // Remove existing entry for this tab (move-to-front behavior)
+  const filteredHistory = history.filter(entry => entry.tabId !== tabId);
+
+  // Add new entry at the beginning
+  const newHistory = [{ tabId, windowId, timestamp }, ...filteredHistory];
+
+  // Limit history size
+  if (newHistory.length > MAX_HISTORY_SIZE) {
+    newHistory.splice(MAX_HISTORY_SIZE);
+  }
+
+  await saveTabHistory(newHistory);
+  console.log(`Tab ${tabId} added to history. History size: ${newHistory.length}`);
+}
+
+/**
+ * Get the previous tab from history (excluding the current tab)
+ */
+async function getPreviousTab(currentTabId: number): Promise<TabHistoryEntry | null> {
+  const history = await getTabHistory();
+
+  // Find the first tab in history that's not the current tab and still exists
+  for (const entry of history) {
+    if (entry.tabId !== currentTabId) {
+      try {
+        // Check if tab still exists
+        await chrome.tabs.get(entry.tabId);
+        return entry;
+      } catch (error) {
+        // Tab doesn't exist anymore, continue to next
+        console.log(`Tab ${entry.tabId} from history no longer exists`, error);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Clean up history by removing closed tabs
+ */
+async function cleanupTabHistory(): Promise<void> {
+  const history = await getTabHistory();
+  const cleanedHistory: TabHistoryEntry[] = [];
+
+  for (const entry of history) {
+    try {
+      // Check if tab still exists
+      await chrome.tabs.get(entry.tabId);
+      cleanedHistory.push(entry);
+    } catch (error) {
+      // Tab doesn't exist anymore, skip it
+      console.log(`Removing closed tab ${entry.tabId} from history`, error);
+    }
+  }
+
+  if (cleanedHistory.length !== history.length) {
+    await saveTabHistory(cleanedHistory);
+    console.log(`History cleaned. Removed ${history.length - cleanedHistory.length} closed tabs`);
+  }
+}
+
+/**
+ * Track tab access times for chronological sorting
+ */
+async function updateTabAccessTime(tabId: number): Promise<void> {
+  const result = await chrome.storage.local.get(ACCESS_TIME_STORAGE_KEY);
+  const accessTimes = result[ACCESS_TIME_STORAGE_KEY] || {};
+
+  accessTimes[tabId] = Date.now();
+
+  await chrome.storage.local.set({ [ACCESS_TIME_STORAGE_KEY]: accessTimes });
+}
+
+/**
+ * Get tab access times
+ */
+async function getTabAccessTimes(): Promise<Record<number, number>> {
+  const result = await chrome.storage.local.get(ACCESS_TIME_STORAGE_KEY);
+  return result[ACCESS_TIME_STORAGE_KEY] || {};
+}
+
+/**
+ * Clean up access times for closed tabs
+ */
+async function cleanupTabAccessTimes(existingTabIds: number[]): Promise<void> {
+  const accessTimes = await getTabAccessTimes();
+  const cleanedAccessTimes: Record<number, number> = {};
+
+  // Only keep access times for existing tabs
+  existingTabIds.forEach(tabId => {
+    if (accessTimes[tabId]) {
+      cleanedAccessTimes[tabId] = accessTimes[tabId];
+    }
+  });
+
+  await chrome.storage.local.set({ [ACCESS_TIME_STORAGE_KEY]: cleanedAccessTimes });
+}
+
+// Listen for tab activation events to track history and access times
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    // Add to history
+    await pushTabToHistory(activeInfo.tabId, activeInfo.windowId);
+
+    // Update access time
+    await updateTabAccessTime(activeInfo.tabId);
+
+    console.log(`Tab activated: ${activeInfo.tabId} in window ${activeInfo.windowId}`);
+  } catch (error) {
+    console.error('Error handling tab activation:', error);
+  }
+});
+
+// Listen for tab removal events to clean up history and access times
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  try {
+    // Clean up history and access times periodically
+    await cleanupTabHistory();
+
+    // Get current tabs to clean access times
+    const tabs = await chrome.tabs.query({});
+    const existingTabIds = tabs.map(tab => tab.id).filter(id => id !== undefined) as number[];
+    await cleanupTabAccessTimes(existingTabIds);
+
+    console.log(`Tab removed: ${tabId}. Cleaned up history and access times.`);
+  } catch (error) {
+    console.error('Error handling tab removal:', error);
+  }
+});
+
 // Listen for messages from other parts of the extension
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GET_TABS") {
-    chrome.tabs.query({}, (tabs) => {
-      sendResponse(tabs);
+    chrome.tabs.query({}, async (tabs) => {
+      try {
+        // Get access times for chronological sorting
+        const accessTimes = await getTabAccessTimes();
+
+        // Add access time data to each tab
+        const tabsWithAccessTime = tabs.map(tab => ({
+          ...tab,
+          lastAccessed: accessTimes[tab.id!] || 0
+        }));
+
+        // Sort by last accessed (most recent first) when no search query
+        tabsWithAccessTime.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+
+        // Limit to most recent 50 tabs for performance
+        const limitedTabs = tabsWithAccessTime.slice(0, 50);
+
+        sendResponse(limitedTabs);
+      } catch (error) {
+        console.error('Error fetching tabs with access times:', error);
+        sendResponse(tabs); // Fallback to original tabs
+      }
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "GET_PREVIOUS_TAB") {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      try {
+        if (tabs.length === 0) {
+          sendResponse({ error: 'No active tab found' });
+          return;
+        }
+
+        const currentTabId = tabs[0].id!;
+        const previousTab = await getPreviousTab(currentTabId);
+
+        if (previousTab) {
+          // Get tab details
+          const tabDetails = await chrome.tabs.get(previousTab.tabId);
+          sendResponse({
+            success: true,
+            tab: tabDetails,
+            previousTabEntry: previousTab
+          });
+        } else {
+          sendResponse({
+            success: false,
+            message: 'No previous tab available'
+          });
+        }
+      } catch (error) {
+        console.error('Error getting previous tab:', error);
+        sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "SWITCH_TO_PREVIOUS_TAB") {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      try {
+        if (tabs.length === 0) {
+          sendResponse({ error: 'No active tab found' });
+          return;
+        }
+
+        const currentTabId = tabs[0].id!;
+        const previousTab = await getPreviousTab(currentTabId);
+
+        if (previousTab) {
+          // Switch to the previous tab
+          chrome.tabs.update(previousTab.tabId, { active: true });
+          if (previousTab.windowId) {
+            chrome.windows.update(previousTab.windowId, { focused: true });
+          }
+          sendResponse({ success: true });
+        } else {
+          sendResponse({
+            success: false,
+            message: 'No previous tab available'
+          });
+        }
+      } catch (error) {
+        console.error('Error switching to previous tab:', error);
+        sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
     });
     return true; // Asynchronous response
 
@@ -23,9 +271,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
 
   } else if (message.type === "CLOSE_TAB") {
-    if (!message.tabId) return;
-    chrome.tabs.remove(message.tabId, () => {
-      sendResponse({ success: true });
+    // Support both single tabId and array of tabIds
+    const tabIds = Array.isArray(message.tabIds) ? message.tabIds : (message.tabId ? [message.tabId] : []);
+
+    if (tabIds.length === 0) {
+      sendResponse({ success: false, error: 'No tab IDs provided' });
+      return;
+    }
+
+    chrome.tabs.remove(tabIds, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error closing tabs:', chrome.runtime.lastError.message);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log(`Successfully closed ${tabIds.length} tab(s)`);
+        sendResponse({ success: true, closedCount: tabIds.length });
+      }
     });
     return true;
 
@@ -78,6 +339,83 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       } else {
         sendResponse({ success: true, closedCount: 0 });
+      }
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "CREATE_TAB_GROUP") {
+    const { tabIds, groupName } = message;
+
+    if (!tabIds || tabIds.length === 0) {
+      sendResponse({ success: false, error: 'No tab IDs provided' });
+      return;
+    }
+
+    chrome.tabs.group({ tabIds }, (groupId) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating tab group:', chrome.runtime.lastError.message);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        // Set group name if provided
+        if (groupName) {
+          chrome.tabGroups.update(groupId, { title: groupName }, () => {
+            if (chrome.runtime.lastError) {
+              console.error('Error setting group name:', chrome.runtime.lastError.message);
+            }
+            sendResponse({ success: true, groupId, message: `Created group "${groupName}" with ${tabIds.length} tabs` });
+          });
+        } else {
+          const defaultName = `Group ${new Date().toLocaleTimeString()}`;
+          chrome.tabGroups.update(groupId, { title: defaultName }, () => {
+            sendResponse({ success: true, groupId, message: `Created group "${defaultName}" with ${tabIds.length} tabs` });
+          });
+        }
+      }
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "DELETE_TAB_GROUP") {
+    const { groupId } = message;
+
+    if (!groupId) {
+      sendResponse({ success: false, error: 'No group ID provided' });
+      return;
+    }
+
+    // Get tabs in the group first
+    chrome.tabs.query({ groupId }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error querying group tabs:', chrome.runtime.lastError.message);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+
+      const tabIds = tabs.map(tab => tab.id).filter(id => id !== undefined) as number[];
+
+      // Ungroup the tabs (this dissolves the group but keeps the tabs open)
+      if (tabIds.length > 0) {
+        chrome.tabs.ungroup(tabIds as [number, ...number[]], () => {
+          if (chrome.runtime.lastError) {
+            console.error('Error ungrouping tabs:', chrome.runtime.lastError.message);
+            sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          } else {
+            console.log(`Successfully ungrouped ${tabIds.length} tabs from group ${groupId}`);
+            sendResponse({ success: true, message: `Ungrouped ${tabIds.length} tabs` });
+          }
+        });
+      } else {
+        sendResponse({ success: false, error: 'No tabs found in group' });
+      }
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "GET_TAB_GROUPS") {
+    chrome.tabGroups.query({}, (groups) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error fetching tab groups:', chrome.runtime.lastError.message);
+        sendResponse([]);
+      } else {
+        sendResponse(groups);
       }
     });
     return true; // Asynchronous response
