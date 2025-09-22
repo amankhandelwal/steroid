@@ -85,7 +85,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 // Constants for tab history management
-const MAX_HISTORY_SIZE = 100;
+const MAX_HISTORY_SIZE = 500;
 const HISTORY_STORAGE_KEY = 'tabHistory';
 const ACCESS_TIME_STORAGE_KEY = 'tabAccessTimes';
 

@@ -27,6 +27,7 @@ function App() {
       // Remove escape handling from App level - let the modal handle it
     };
 
+    // Use normal event listeners when palette is closed to avoid website interference
     document.addEventListener('keydown', handleKeyDown);
 
     // Cleanup the event listener on component unmount
