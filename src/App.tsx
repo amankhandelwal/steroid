@@ -34,7 +34,7 @@ function App() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]); // Include isOpen in dependency array to avoid stale closure
+  }, []);
 
   return (
     <>
