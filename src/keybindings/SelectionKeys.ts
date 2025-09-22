@@ -29,11 +29,11 @@ export class SelectionKeys {
     // Enter - Execute selected item(s) or enter command mode
     const enterHandler = KeybindingManager.createHandler('enter', (event) => {
       const context = this.manager.getContext();
+      console.log('SelectionKeys: Enter handler called, context:', context);
       if (context.isModalOpen) {
-        if (!context.isInputFocused) {
-          this.actions.executeSelected();
-          return false; // Prevent default
-        }
+        console.log('SelectionKeys: Calling executeSelected');
+        this.actions.executeSelected();
+        return false; // Prevent default
       }
     });
 

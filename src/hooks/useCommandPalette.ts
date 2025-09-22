@@ -29,6 +29,7 @@ export interface UseCommandPaletteReturn {
   selectAll: () => void;
   fetchTabs: () => void;
   fetchTabGroups: () => void;
+  executeCommand: (commandId: string) => Promise<void>;
   executeCurrentCommand: () => Promise<void>;
   reset: () => void;
 
@@ -215,12 +216,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     setSelectedTabIds(allTabIds);
   }, [tabs]);
 
-  // Execute current command
-  const executeCurrentCommand = useCallback(async () => {
-    if (!currentCommand) {
-      return;
-    }
-
+  // Execute specific command by ID
+  const executeCommand = useCallback(async (commandId: string) => {
     const context: CommandExecutionContext = {
       query: queryState,
       selectedTabIds,
@@ -235,7 +232,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     };
 
     try {
-      const result = await commandRegistry.executeCommand(currentCommand.id, context);
+      const result = await commandRegistry.executeCommand(commandId, context);
 
       if (result.success) {
         console.log('Command executed successfully:', result.message);
@@ -256,7 +253,15 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     } catch (error) {
       console.error('Error executing command:', error);
     }
-  }, [currentCommand, queryState, selectedTabIds, commandMode, onClose, fetchTabs, fetchTabGroups]);
+  }, [queryState, selectedTabIds, commandMode, onClose, fetchTabs, fetchTabGroups]);
+
+  // Execute current command
+  const executeCurrentCommand = useCallback(async () => {
+    if (!currentCommand) {
+      return;
+    }
+    await executeCommand(currentCommand.id);
+  }, [currentCommand, executeCommand]);
 
   // Reset state
   const reset = useCallback(() => {
@@ -293,6 +298,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     selectAll,
     fetchTabs,
     fetchTabGroups,
+    executeCommand,
     executeCurrentCommand,
     reset,
 

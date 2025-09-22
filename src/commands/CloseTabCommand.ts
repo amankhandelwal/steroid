@@ -20,7 +20,7 @@ export class CloseTabCommand extends BaseCommand {
       // No argument, show suggestion to close current tab
       return [{
         type: 'action',
-        id: 'close-current-tab',
+        id: `${this.id}-suggestion`,
         title: 'Close current tab',
         action: () => {}
       }];

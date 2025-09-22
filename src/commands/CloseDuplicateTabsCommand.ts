@@ -24,8 +24,8 @@ export class CloseDuplicateTabsCommand extends BaseCommand {
     // For SingleExecution commands, show an execution option
     return [{
       type: 'action' as const,
-      id: 'execute-close-duplicates',
-      title: 'Close Duplicate Tabs',
+      id: `${this.id}-suggestion`,
+      title: this.name,
       action: () => {
         // This will be handled by the command execution system
       }
