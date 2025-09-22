@@ -80,7 +80,8 @@ export abstract class BaseCommand {
       id: `${this.id}-suggestion`,
       title: this.getDisplayTitle(query),
       action: () => {
-        // This will be handled by the command execution system
+        // Mark this suggestion for execution by the command palette
+        // The actual execution will be handled by the executeCurrentCommand function
       }
     }];
   }

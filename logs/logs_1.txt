@@ -1,0 +1,167 @@
+(index):1 Unchecked runtime.lastError: The message port closed before a response was received.
+content.js:49 Steroid content script loaded.
+RotateCookiesPage?og_pid=538&rot=3&origin=https%3A%2F%2Fwww.google.com&exp_id=0:1 Unchecked runtime.lastError: The message port closed before a response was received.
+content.js:49 App: Key pressed: Shift Modal open: false
+content.js:49 App: Shift pressed, time diff: 1758534114241
+content.js:49 App: Key pressed: Shift Modal open: false
+content.js:49 App: Shift pressed, time diff: 131
+content.js:49 App: Double Shift detected, calling setIsOpen(true)
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 0
+content.js:49 searchResults: tabGroups count: 0
+content.js:49 searchResults: queryState:
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: null
+content.js:49 searchResults: Empty query, showing recent tabs
+content.js:49 searchResults: Recent tabs count: 0
+content.js:49 useCommandPalette: Initializing commands...
+content.js:49 CommandRegistry.register: Registered command: Previous Tab (previous_tab)
+content.js:49 CommandRegistry.register: Command aliases: (4) ['previous tab', 'prev tab', 'previous', 'prev']
+content.js:49 CommandRegistry.register: Total commands now: 1
+content.js:49 CommandRegistry.register: Registered command: Close Duplicate Tabs (close_duplicates)
+content.js:49 CommandRegistry.register: Command aliases: (3) ['close duplicate', 'close duplicates', 'duplicate']
+content.js:49 CommandRegistry.register: Total commands now: 2
+content.js:49 CommandRegistry.register: Registered command: Close (close_single)
+content.js:49 CommandRegistry.register: Command aliases: (3) ['close', 'close tab', 'x']
+content.js:49 CommandRegistry.register: Total commands now: 3
+content.js:49 CommandRegistry.register: Registered command: Close Tabs (close_multiple)
+content.js:49 CommandRegistry.register: Command aliases: (3) ['close tabs', 'close multiple', 'multi close']
+content.js:49 CommandRegistry.register: Total commands now: 4
+content.js:49 CommandRegistry.register: Registered command: New Tab (new_tab)
+content.js:49 CommandRegistry.register: Command aliases: (4) ['new tab', 'new', 'nt', 'tab']
+content.js:49 CommandRegistry.register: Total commands now: 5
+content.js:49 CommandRegistry.register: Registered command: Group Tabs (group_tabs)
+content.js:49 CommandRegistry.register: Command aliases: (3) ['group tabs', 'group', 'create group']
+content.js:49 CommandRegistry.register: Total commands now: 6
+content.js:49 CommandRegistry.register: Registered command: Delete Tab Group (delete_group)
+content.js:49 CommandRegistry.register: Command aliases: (4) ['delete tab group', 'delete group', 'ungroup', 'remove group']
+content.js:49 CommandRegistry.register: Total commands now: 7
+content.js:49 CommandRegistry.register: Registered command: Search (search)
+content.js:49 CommandRegistry.register: Command aliases: (3) ['search', 's', 'find']
+content.js:49 CommandRegistry.register: Total commands now: 8
+content.js:49 CommandRegistry.register: Registered command: Open (url)
+content.js:49 CommandRegistry.register: Command aliases: (4) ['open', 'url', 'go', 'navigate']
+content.js:49 CommandRegistry.register: Total commands now: 9
+content.js:49 Command system initialized with 9 commands
+content.js:49 useCommandPalette: Commands initialized
+content.js:49 fetchTabs: Starting to fetch tabs...
+content.js:49 fetchTabGroups: Starting to fetch tab groups...
+content.js:49 fetchTabGroups: Response received: (5) [{…}, {…}, {…}, {…}, {…}]
+content.js:49 fetchTabGroups: Tab groups set, count: 5
+content.js:49 fetchTabs: Response received: (50) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+content.js:49 fetchTabs: Tabs set, count: 50
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState:
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: null
+content.js:49 searchResults: Empty query, showing recent tabs
+content.js:49 searchResults: Recent tabs count: 10
+app?eom=1&awwd=1&dpi=89978449&origin=https%3A%2F%2Fwww.google.com&cn=app&pid=1&spid=538&hl=en:1 Unchecked runtime.lastError: The message port closed before a response was received.
+content.js:49 App: Key pressed: d Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: d Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "d"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: d
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: u Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: u Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "du"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: du
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: p Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: p Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "dup"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: dup
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: l Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: l Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "dupl"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: dupl
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: i Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: i Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "dupli"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: dupli
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: c Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: c Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "duplic"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: duplic
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: a Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: a Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "duplica"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: duplica
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: t Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: t Modal open: true
+content.js:49 CloseDuplicateTabsCommand.matches called with query: "duplicat"
+content.js:49 CloseDuplicateTabsCommand.matches result: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: duplicat
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0
+content.js:49 App: Key pressed: e Modal open: false
+content.js:49 useKeyboardNavigation: Key pressed: e Modal open: true
+content.js:49 searchResults: Generating results...
+content.js:49 searchResults: tabs count: 50
+content.js:49 searchResults: tabGroups count: 5
+content.js:49 searchResults: queryState: duplicate
+content.js:49 searchResults: commandMode: false
+content.js:49 searchResults: currentCommand: Ph {id: 'close_duplicates', name: 'Close Duplicate Tabs', aliases: Array(3), description: 'Close all duplicate tabs (keeps one copy of each unique URL)', mode: 'SingleExecution', …}
+content.js:49 searchResults: Using current command: Close Duplicate Tabs
+content.js:49 searchResults: Command results: 0

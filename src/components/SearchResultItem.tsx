@@ -96,15 +96,23 @@ const SearchResultItem = ({
 
       {item.type === 'closeTabAction' && (
         <div className="flex items-center gap-3">
-          <div className="w-4 h-4 flex-shrink-0 text-red-500">✕</div>
+          <img
+            src={item.tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>'}
+            alt=""
+            className="w-4 h-4 flex-shrink-0"
+            onError={(e) => {
+              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
+            }}
+          />
           <div className="min-w-0 flex-1">
-            <div className="text-red-700 font-medium truncate">
-              {item.title}
+            <div className="font-medium text-gray-900 truncate">
+              Close: {item.tab.title || 'Untitled'}
             </div>
-            <div className="text-sm text-red-500 truncate">
+            <div className="text-sm text-gray-500 truncate">
               {item.tab.url}
             </div>
           </div>
+          <div className="text-red-500 text-sm">✕</div>
         </div>
       )}
 

@@ -57,6 +57,8 @@ export function useKeyboardNavigation(props: UseKeyboardNavigationProps) {
 
     // Set up global keyboard event listener
     const handleKeyDown = (event: KeyboardEvent) => {
+      console.log('useKeyboardNavigation: Key pressed:', event.key, 'Modal open:', props.isModalOpen);
+
       // Only handle events when modal is open
       if (!props.isModalOpen) {
         return;

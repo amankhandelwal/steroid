@@ -30,6 +30,13 @@ export class SearchCommand extends BaseCommand {
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
 
+  matches(query: string): boolean {
+    console.log(`SearchCommand.matches called with query: "${query}"`);
+    const result = super.matches(query);
+    console.log(`SearchCommand.matches result:`, result);
+    return result;
+  }
+
   getSearchResults(context: CommandContext): SearchResultItem[] {
     const argument = this.extractArgument(context.query);
 

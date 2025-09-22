@@ -5,6 +5,7 @@
 import { useEffect, useCallback } from 'react';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
+import { commandRegistry } from '../commands';
 import SearchResultItem from './SearchResultItem';
 import CommandPaletteHeader from './CommandPaletteHeader';
 import CommandPaletteFooter from './CommandPaletteFooter';
@@ -87,8 +88,23 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
       if (activeItem.action) {
         activeItem.action();
       } else {
-        // Execute current command
-        executeCurrentCommand();
+        // This is a command suggestion - find and execute the command
+        const commandId = activeItem.id.replace('-suggestion', '');
+        const command = currentCommand || commandRegistry.getCommand(commandId);
+
+        if (command) {
+          if (command.mode === 'SingleExecution') {
+            // Execute immediately
+            setActiveCommand(command.id);
+            executeCurrentCommand();
+          } else if (command.mode === 'CommandMode') {
+            // Enter command mode
+            setCommandMode(true);
+            setActiveCommand(command.id);
+            setQuery(''); // Clear input for command mode search
+            clearSelection(); // Clear any existing selection
+          }
+        }
       }
     } else if (activeItem.type === 'closeTabAction') {
       chrome.runtime.sendMessage({

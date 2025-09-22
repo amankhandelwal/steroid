@@ -177,7 +177,18 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       }));
     console.log('searchResults: Matching tabs count:', matchingTabs.length);
 
-    const finalResults = [...suggestions, ...matchingTabs];
+    // Add fallback Google search option if no commands match
+    const fallbackSearch = suggestions.length === 0 ? [{
+      type: 'action' as const,
+      id: 'fallback-google-search',
+      title: `Search "${queryState}" on Google`,
+      action: () => {
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(queryState)}`;
+        chrome.runtime.sendMessage({ type: 'OPEN_URL', url: searchUrl });
+      }
+    }] : [];
+
+    const finalResults = [...suggestions, ...matchingTabs, ...fallbackSearch];
     console.log('searchResults: Final results count:', finalResults.length);
     return finalResults;
   }, [tabs, tabGroups, selectedTabIds, queryState, commandMode, activeCommand, currentCommand]);

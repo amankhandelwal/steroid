@@ -14,8 +14,15 @@ export class PreviousTabCommand extends BaseCommand {
   readonly multiSelect = false;
 
   getSearchResults(context: CommandContext): SearchResultItem[] {
-    // This command doesn't show additional search results
-    return [];
+    // For SingleExecution commands, show an execution option
+    return [{
+      type: 'action' as const,
+      id: 'execute-previous-tab',
+      title: 'Previous Tab',
+      action: () => {
+        // This will be handled by the command execution system
+      }
+    }];
   }
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {

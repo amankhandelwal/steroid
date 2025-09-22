@@ -39,11 +39,15 @@ export class SelectionKeys {
 
     // Escape - Close modal or exit command mode
     const escapeHandler = KeybindingManager.createHandler('escape', (event) => {
+      console.log('SelectionKeys: Escape handler called');
       const context = this.manager.getContext();
+      console.log('SelectionKeys: Context:', context);
       if (context.isModalOpen) {
         if (context.commandMode) {
+          console.log('SelectionKeys: Exiting command mode');
           this.actions.exitCommandMode();
         } else {
+          console.log('SelectionKeys: Closing modal');
           this.actions.closeModal();
         }
         return false; // Prevent default
@@ -95,10 +99,22 @@ export class SelectionKeys {
       }
     });
 
+    // Tilde (~) or backtick (`) - Alternative close key
+    const tildeHandler = KeybindingManager.createHandler('`', (event) => {
+      console.log('SelectionKeys: Tilde/backtick handler called');
+      const context = this.manager.getContext();
+      if (context.isModalOpen) {
+        console.log('SelectionKeys: Closing modal via tilde');
+        this.actions.closeModal();
+        return false; // Prevent default
+      }
+    });
+
     // Store handlers for cleanup
     this.handlers = [
       enterHandler,
       escapeHandler,
+      tildeHandler,
       tabHandler,
       spaceHandler,
       selectAllHandler,

@@ -13,9 +13,23 @@ export class CloseDuplicateTabsCommand extends BaseCommand {
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
 
+  matches(query: string): boolean {
+    console.log(`CloseDuplicateTabsCommand.matches called with query: "${query}"`);
+    const result = super.matches(query);
+    console.log(`CloseDuplicateTabsCommand.matches result:`, result);
+    return result;
+  }
+
   getSearchResults(context: CommandContext): SearchResultItem[] {
-    // This command doesn't show additional search results
-    return [];
+    // For SingleExecution commands, show an execution option
+    return [{
+      type: 'action' as const,
+      id: 'execute-close-duplicates',
+      title: 'Close Duplicate Tabs',
+      action: () => {
+        // This will be handled by the command execution system
+      }
+    }];
   }
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {

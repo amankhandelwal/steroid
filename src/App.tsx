@@ -16,7 +16,7 @@ function App() {
     const handleKeyDown = (event: KeyboardEvent) => {
       console.log('App: Key pressed:', event.key, 'Modal open:', isOpen); // ADDED FOR DEBUGGING
 
-      if (event.key === 'Shift') {
+      if (event.key === 'Shift' && !isOpen) {
         const now = Date.now();
         const timeDiff = now - lastShiftPress;
         console.log('App: Shift pressed, time diff:', timeDiff); // ADDED FOR DEBUGGING
@@ -27,12 +27,8 @@ function App() {
           event.stopPropagation();
         }
         lastShiftPress = now;
-      } else if (event.key === 'Escape' && isOpen) {
-        console.log('App: Escape pressed, calling setIsOpen(false)'); // ADDED FOR DEBUGGING
-        setIsOpen(false);
-        event.preventDefault();
-        event.stopPropagation();
       }
+      // Remove escape handling from App level - let the modal handle it
     };
 
     document.addEventListener('keydown', handleKeyDown);
