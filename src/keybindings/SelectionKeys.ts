@@ -58,14 +58,6 @@ export class SelectionKeys {
       }
     });
 
-    // Space - Toggle selection in command mode
-    const spaceHandler = KeybindingManager.createHandler(' ', (event) => {
-      const context = this.manager.getContext();
-      if (context.isModalOpen && context.commandMode && !context.isInputFocused) {
-        this.actions.toggleSelection();
-        return false; // Prevent default
-      }
-    });
 
     // Ctrl+A - Select all in command mode
     const selectAllHandler = KeybindingManager.createHandler('a', (event) => {
@@ -127,7 +119,6 @@ export class SelectionKeys {
       escapeHandler,
       tildeHandler,
       tabHandler,
-      spaceHandler,
       selectAllHandler,
       clearSelectionHandler,
       deleteHandler,

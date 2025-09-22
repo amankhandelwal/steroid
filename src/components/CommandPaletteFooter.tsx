@@ -29,8 +29,6 @@ const CommandPaletteFooter = ({ commandMode, hasResults, hasSelection }: Command
 
         {commandMode && (
           <div className="flex gap-4">
-            <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Space</kbd>
-            <span>toggle</span>
             <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Ctrl+A</kbd>
             <span>select all</span>
             <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Ctrl+D</kbd>
