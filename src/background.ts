@@ -386,6 +386,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     });
     return true;
 
+  } else if (message.type === "NEW_TAB") {
+    // Create a new tab
+    chrome.tabs.create({}, (tab) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating new tab:', chrome.runtime.lastError.message);
+        safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
+      } else {
+        safeSendResponse(sendResponse, { success: true, message: 'Created new tab', tab });
+      }
+    });
+    return true;
+
   } else if (message.type === "CLOSE_TAB") {
     // Support both single tabId and array of tabIds
     const tabIds = Array.isArray(message.tabIds) ? message.tabIds : (message.tabId ? [message.tabId] : []);

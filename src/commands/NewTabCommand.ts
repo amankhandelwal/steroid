@@ -17,7 +17,7 @@ export class NewTabCommand extends BaseCommand {
     // For SingleExecution commands, show an execution option
     return [{
       type: 'action' as const,
-      id: 'execute-new-tab',
+      id: `${this.id}-suggestion`,
       title: 'New Tab',
       action: () => {
         // This will be handled by the command execution system
@@ -27,7 +27,7 @@ export class NewTabCommand extends BaseCommand {
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
-      chrome.tabs.create({}, (tab) => {
+      chrome.runtime.sendMessage({ type: 'NEW_TAB' }, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,
@@ -36,12 +36,19 @@ export class NewTabCommand extends BaseCommand {
           return;
         }
 
-        context.fetchTabs(); // Refresh tab list
-        resolve({
-          success: true,
-          message: 'Created new tab',
-          shouldCloseModal: true
-        });
+        if (response && response.success) {
+          context.fetchTabs(); // Refresh tab list
+          resolve({
+            success: true,
+            message: 'Created new tab',
+            shouldCloseModal: true
+          });
+        } else {
+          resolve({
+            success: false,
+            error: response?.error || 'Failed to create new tab'
+          });
+        }
       });
     });
   }
