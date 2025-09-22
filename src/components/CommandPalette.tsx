@@ -228,76 +228,141 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         });
         break;
       case 'close':
-        if (parsedCommand.query) {
-          const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item);
-          results.push(...filteredTabs.map(tab => ({
-            type: 'closeTabAction' as const,
-            tab: tab,
-            title: `Close: ${tab.title}`,
-            id: `close-tab-${tab.id}`
+        if (commandMode && activeCommand === 'close') {
+          // In command mode, show tabs for selection (not close actions)
+          const tabsToShow = parsedCommand.query
+            ? fuse.search(parsedCommand.query).map(result => result.item)
+            : tabs;
+
+          results.push(...tabsToShow.map(tab => ({
+            type: 'tab' as const,
+            tab: tab
           })));
+
+          // If we have selected tabs, show the execute action
+          if (selectedTabIds.size > 0) {
+            results.push({
+              type: 'action',
+              id: 'execute-close',
+              title: `✓ Close ${selectedTabIds.size} selected tabs`,
+              action: () => {
+                // This will be handled by executeCommandOnSelectedTabs
+              }
+            });
+          }
         } else {
-          // If 'close' command is typed without query, show all tabs as closable
-          results.push(...tabs.map(tab => ({
-            type: 'closeTabAction' as const,
-            tab: tab,
-            title: `Close: ${tab.title}`,
-            id: `close-tab-${tab.id}`
-          })));
+          // Not in command mode, show close actions for immediate execution
+          if (parsedCommand.query) {
+            const filteredTabs = fuse.search(parsedCommand.query).map(result => result.item);
+            results.push(...filteredTabs.map(tab => ({
+              type: 'closeTabAction' as const,
+              tab: tab,
+              title: `Close: ${tab.title}`,
+              id: `close-tab-${tab.id}`
+            })));
+          } else {
+            // If 'close' command is typed without query, show all tabs as closable
+            results.push(...tabs.map(tab => ({
+              type: 'closeTabAction' as const,
+              tab: tab,
+              title: `Close: ${tab.title}`,
+              id: `close-tab-${tab.id}`
+            })));
+          }
         }
         break;
       case 'createTabGroup':
-        results.push({
-          type: 'action',
-          id: 'create-tab-group',
-          title: `Create Tab Group${parsedCommand.query ? ` "${parsedCommand.query}"` : ''}`,
-          action: () => {
-            if (selectedTabIds.size > 0) {
-              const tabIdsArray = Array.from(selectedTabIds);
-              const groupName = parsedCommand.query || `Group ${new Date().toLocaleTimeString()}`;
+        // In command mode, show tabs for selection
+        if (commandMode && activeCommand === 'create tab group') {
+          // Show all tabs for selection
+          results.push(...tabs.map((tab) => ({ type: 'tab' as const, tab })));
+
+          // If we have selected tabs, show the execute action
+          if (selectedTabIds.size > 0) {
+            results.push({
+              type: 'action',
+              id: 'execute-create-group',
+              title: `✓ Create Group with ${selectedTabIds.size} tabs${parsedCommand.query ? ` "${parsedCommand.query}"` : ''}`,
+              action: () => {
+                const tabIdsArray = Array.from(selectedTabIds);
+                const groupName = parsedCommand.query || `Group ${new Date().toLocaleTimeString()}`;
+                chrome.runtime.sendMessage(
+                  { type: 'CREATE_TAB_GROUP', tabIds: tabIdsArray, groupName },
+                  (response) => {
+                    if (response && response.success) {
+                      console.log(response.message);
+                      fetchTabs();
+                      fetchTabGroups();
+                      setSelectedTabIds(new Set());
+                      setCommandMode(false);
+                      setActiveCommand(null);
+                      onClose();
+                    }
+                  }
+                );
+              }
+            });
+          }
+        } else {
+          // Not in command mode, show the action to enter command mode
+          results.push({
+            type: 'action',
+            id: 'create-tab-group',
+            title: `Create Tab Group${parsedCommand.query ? ` "${parsedCommand.query}"` : ''}`,
+            action: () => {
+              // This will be handled by handleItemClick to enter command mode
+            }
+          });
+        }
+        break;
+      case 'deleteTabGroup':
+        if (commandMode && activeCommand === 'delete tab group') {
+          // In command mode, show tab groups for selection
+          const groupsToShow = parsedCommand.query
+            ? tabGroups.filter(group => group.title?.toLowerCase().includes(parsedCommand.query.toLowerCase()))
+            : tabGroups;
+
+          // Create special tab group items that can be selected
+          results.push(...groupsToShow.map(group => ({
+            type: 'action' as const,
+            id: `delete-group-option-${group.id}`,
+            title: `${group.title || 'Untitled'} (${group.color || 'no color'})`,
+            action: () => {
               chrome.runtime.sendMessage(
-                { type: 'CREATE_TAB_GROUP', tabIds: tabIdsArray, groupName },
+                { type: 'DELETE_TAB_GROUP', groupId: group.id },
                 (response) => {
                   if (response && response.success) {
                     console.log(response.message);
                     fetchTabs();
                     fetchTabGroups();
-                    setSelectedTabIds(new Set());
                     setCommandMode(false);
                     setActiveCommand(null);
                     onClose();
                   }
                 }
               );
-            } else {
-              console.log('No tabs selected for grouping');
             }
-          }
-        });
-        break;
-      case 'deleteTabGroup':
-        // Show available tab groups for deletion
-        const groupsToShow = parsedCommand.query
-          ? tabGroups.filter(group => group.title?.toLowerCase().includes(parsedCommand.query.toLowerCase()))
-          : tabGroups;
+          })));
 
-        results.push(...groupsToShow.map(group => ({
-          type: 'action' as const,
-          id: `delete-group-${group.id}`,
-          title: `Delete Group: ${group.title || 'Untitled'}`,
-          action: () => {
-            chrome.runtime.sendMessage(
-              { type: 'DELETE_TAB_GROUP', groupId: group.id },
-              (response) => {
-                if (response && response.success) {
-                  console.log(response.message);
-                  fetchTabs();
-                  fetchTabGroups();
-                }
-              }
-            );
+          if (tabGroups.length === 0) {
+            results.push({
+              type: 'action' as const,
+              id: 'no-groups',
+              title: 'No tab groups found',
+              action: () => console.log('No tab groups to delete')
+            });
           }
-        })));
+        } else {
+          // Not in command mode, show the action to enter command mode
+          results.push({
+            type: 'action',
+            id: 'delete-tab-group',
+            title: `Delete Tab Group${parsedCommand.query ? ` (search: "${parsedCommand.query}")` : ''}`,
+            action: () => {
+              // This will be handled by handleItemClick to enter command mode
+            }
+          });
+        }
         break;
       case 'tabSearch':
       default:
@@ -326,7 +391,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const handleItemClick = (item: SearchResultItem) => {
     // Check if we're in command mode and this is a multi-step command
     const isMultiStepCommand = (command: string) => {
-      return ['close', 'create tab group', 'group tabs'].includes(command.toLowerCase());
+      return ['close', 'create tab group', 'group tabs', 'delete tab group', 'ungroup', 'remove group'].includes(command.toLowerCase());
     };
 
     if (item.type === 'tab') {
@@ -364,11 +429,15 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         setCommandMode(true);
         setActiveCommand('create tab group');
         setQuery(query); // Keep the current query for naming
+      } else if (actionTitle.includes('delete tab group') && query.trim().startsWith('delete tab group')) {
+        setCommandMode(true);
+        setActiveCommand('delete tab group');
+        setQuery(query); // Keep the current query for group search
       } else if (isMultiStepCommand(actionTitle)) {
         setCommandMode(true);
         setActiveCommand(actionTitle);
       } else {
-        // Immediate execution commands (Previous Tab, Close Duplicate, searches, Delete Tab Group, etc.)
+        // Immediate execution commands (Previous Tab, Close Duplicate, searches, etc.)
         item.action();
         onClose();
       }
@@ -430,14 +499,21 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // If a non-navigation key is pressed, refocus the input and reset active item
-      const isNavigationKey = ['ArrowUp', 'ArrowDown', 'Enter', 'Escape', '`'].includes(event.key);
+      const isNavigationKey = ['ArrowUp', 'ArrowDown', 'Enter', 'Escape', '`', 'Tab'].includes(event.key);
+
+      // Only stop propagation for keys we're actually handling to prevent website interference
+      // Exception: Don't stop Escape propagation when not in command mode (let App.tsx handle it)
+      if (isNavigationKey && !(event.key === 'Escape' && !commandMode)) {
+        event.stopPropagation();
+      }
+
       if (!isNavigationKey && inputRef.current && document.activeElement !== inputRef.current) {
         inputRef.current.focus();
         setActiveItemIndex(0);
         return; // Don't process as navigation if typing
       }
 
-      if (searchResults.length === 0) return; // No items to navigate
+      if (searchResults.length === 0 && !['Escape'].includes(event.key)) return; // No items to navigate
 
       switch (event.key) {
         case 'ArrowUp':
@@ -502,11 +578,13 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           }
           break;
         case 'Escape': // Exit command mode or close palette
-          event.preventDefault();
           if (commandMode) {
+            event.preventDefault();
             exitCommandMode();
           } else {
-            onClose();
+            // Let this bubble up to App.tsx to close the palette
+            // Don't call onClose() here to avoid double-closing
+            return;
           }
           break;
       }
@@ -548,7 +626,11 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           />
           {commandMode && (
             <div className="mt-2 text-xs text-blue-400">
-              Command Mode: {activeCommand?.toUpperCase()} | Tab: select/deselect | Enter: execute | Esc: exit
+              Command Mode: {activeCommand?.toUpperCase()} |
+              {selectedTabIds.size === 0
+                ? " Navigate with ↑↓, Tab to select tabs, Esc to exit"
+                : ` ${selectedTabIds.size} selected | Tab: select more | Enter: execute | Esc: exit`
+              }
             </div>
           )}
         </div>
@@ -642,7 +724,15 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           </ul>
         </div>
         <div className="p-2 text-xs text-gray-400">
-          <span><b>Tip:</b> Use Shift+Shift to open, Esc to close.{commandMode && ' Tab: select, Enter: execute command.'}</span>
+          <span>
+            <b>Tip:</b> Use Shift+Shift to open, Esc to close.
+            {commandMode
+              ? selectedTabIds.size > 0
+                ? ' Press Enter to execute on selected tabs.'
+                : ' Use Tab to select tabs, then Enter to execute.'
+              : ' Type commands like "close", "create tab group", or search queries.'
+            }
+          </span>
         </div>
       </div>
     </div>
