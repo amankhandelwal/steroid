@@ -23,6 +23,20 @@ const commandConfig = [
       "searchItems": getAllTabsAndCommands,
     },
     {
+      "id": "new_tab",
+      "commandName": "New Tab", // Open a new tab in the current window
+      "mode": "SingleExecution",
+      "multiSelect": false,
+      "searchItems": null
+    },
+    {
+      "id": "close_single",
+      "commandName": "Close", // Usage: `Close` -> Closes the current tab, `Close {query_name}` Closes the tab from the tab selected below
+      "mode": "SingleExecution",
+      "multiSelect": false,
+      "searchItems": getAllTabs
+    },
+    {
       "id": "previous_tab",
       "commandName": "Previous Tab",
       "mode": "SingleExecution",
@@ -36,7 +50,7 @@ const commandConfig = [
       "searchItems": null
     },
     {
-      "id": "close_multiple", // We don't need a close single tab command. We can use "default" + ` (tilde) key combination
+      "id": "close_multiple",
       "commandName": "Close Tabs",
       "mode": "CommandMode",
       "multiSelect": true,
@@ -44,7 +58,7 @@ const commandConfig = [
     },
     {
       "id": "group_tabs",
-      "commandName": "Group Tabs",
+      "commandName": "Group Tabs", // Usage `Group Tabs {group_name}` > Then select multiple tabs.
       "mode": "CommandMode",
       "multiSelect": true,
       "searchItems": getAllTabs
