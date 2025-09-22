@@ -609,6 +609,18 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     setActiveItemIndex(0);
   }, [searchResults]);
 
+  // Scroll active item into view when activeItemIndex changes
+  useEffect(() => {
+    const activeElement = document.querySelector(`[data-item-index="${activeItemIndex}"]`);
+    if (activeElement) {
+      activeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+  }, [activeItemIndex]);
+
   // Get selected tabs for display
   const selectedTabs = tabs.filter(tab => selectedTabIds.has(tab.id!));
 
@@ -673,6 +685,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
               return (
                 <li
                   key={item.type === 'tab' ? item.tab.id : (item.type === 'action' ? item.id : item.id || `${item.type}-${index}`)}
+                  data-item-index={index}
                   onClick={() => handleItemClick(item)}
                   className={`p-2 text-sm cursor-pointer flex items-center gap-2 justify-between ${
                     index === activeItemIndex

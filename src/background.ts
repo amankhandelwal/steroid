@@ -4,6 +4,90 @@
  */
 console.log("Steroid background script loaded.");
 
+// Inject content script into existing tabs when extension starts/updates
+async function injectContentScriptIntoExistingTabs() {
+  try {
+    const tabs = await chrome.tabs.query({});
+
+    for (const tab of tabs) {
+      // Skip chrome:// URLs and extension pages as they can't be scripted
+      if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://') && !tab.url.startsWith('edge://') && tab.id) {
+        try {
+          // Check if content script is already injected by testing if the host element exists
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              return document.getElementById('steroid-host') !== null;
+            }
+          });
+
+          const isAlreadyInjected = results[0]?.result;
+
+          if (!isAlreadyInjected) {
+            // Inject the content script
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['content.js']
+            });
+            console.log(`Content script injected into tab: ${tab.url}`);
+          } else {
+            console.log(`Content script already exists in tab: ${tab.url}`);
+          }
+        } catch (error) {
+          // Silently ignore injection failures (usually due to protected pages)
+          console.debug(`Could not inject into tab ${tab.url}:`, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error injecting content scripts into existing tabs:', error);
+  }
+}
+
+// Inject into existing tabs when extension starts
+chrome.runtime.onStartup.addListener(injectContentScriptIntoExistingTabs);
+chrome.runtime.onInstalled.addListener(injectContentScriptIntoExistingTabs);
+
+// Also inject when a tab is activated (in case it was missed)
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+
+    if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://') && !tab.url.startsWith('edge://')) {
+      try {
+        // Check if content script exists
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: activeInfo.tabId },
+          func: () => {
+            return document.getElementById('steroid-host') !== null;
+          }
+        });
+
+        const isAlreadyInjected = results[0]?.result;
+
+        if (!isAlreadyInjected) {
+          // Inject the content script
+          await chrome.scripting.executeScript({
+            target: { tabId: activeInfo.tabId },
+            files: ['content.js']
+          });
+          console.log(`Content script injected into activated tab: ${tab.url}`);
+        }
+      } catch (error) {
+        // Silently ignore injection failures
+        console.debug(`Could not inject into activated tab ${tab.url}:`, error);
+      }
+    }
+
+    // Continue with existing tab history tracking
+    await pushTabToHistory(activeInfo.tabId, activeInfo.windowId);
+    await updateTabAccessTime(activeInfo.tabId);
+    console.log(`Tab activated: ${activeInfo.tabId} in window ${activeInfo.windowId}`);
+  } catch (error) {
+    console.error('Error handling tab activation:', error);
+  }
+});
+
 // Constants for tab history management
 const MAX_HISTORY_SIZE = 100;
 const HISTORY_STORAGE_KEY = 'tabHistory';
@@ -137,20 +221,7 @@ async function cleanupTabAccessTimes(existingTabIds: number[]): Promise<void> {
   await chrome.storage.local.set({ [ACCESS_TIME_STORAGE_KEY]: cleanedAccessTimes });
 }
 
-// Listen for tab activation events to track history and access times
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  try {
-    // Add to history
-    await pushTabToHistory(activeInfo.tabId, activeInfo.windowId);
-
-    // Update access time
-    await updateTabAccessTime(activeInfo.tabId);
-
-    console.log(`Tab activated: ${activeInfo.tabId} in window ${activeInfo.windowId}`);
-  } catch (error) {
-    console.error('Error handling tab activation:', error);
-  }
-});
+// Note: Tab activation listener moved above to handle content script injection
 
 // Listen for tab removal events to clean up history and access times
 chrome.tabs.onRemoved.addListener(async (tabId) => {
@@ -169,8 +240,36 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
+// Helper function to safely send response with error handling
+function safeSendResponse(sendResponse: (response?: any) => void, response: any) {
+  try {
+    if (chrome.runtime.lastError) {
+      console.error('Runtime error before sending response:', chrome.runtime.lastError);
+      return;
+    }
+    sendResponse(response);
+  } catch (error) {
+    console.error('Error sending response:', error);
+  }
+}
+
+// Helper function to check if message port is still open
+function isPortOpen(): boolean {
+  try {
+    return !chrome.runtime.lastError;
+  } catch {
+    return false;
+  }
+}
+
 // Listen for messages from other parts of the extension
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  // Ensure message and sendResponse are valid
+  if (!message || typeof sendResponse !== 'function') {
+    console.error('Invalid message or sendResponse function');
+    return false;
+  }
+
   if (message.type === "GET_TABS") {
     chrome.tabs.query({}, async (tabs) => {
       try {
@@ -189,10 +288,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         // Limit to most recent 50 tabs for performance
         const limitedTabs = tabsWithAccessTime.slice(0, 50);
 
-        sendResponse(limitedTabs);
+        safeSendResponse(safeSendResponse, limitedTabs);
       } catch (error) {
         console.error('Error fetching tabs with access times:', error);
-        sendResponse(tabs); // Fallback to original tabs
+        safeSendResponse(safeSendResponse, tabs); // Fallback to original tabs
       }
     });
     return true; // Asynchronous response
@@ -201,7 +300,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       try {
         if (tabs.length === 0) {
-          sendResponse({ error: 'No active tab found' });
+          safeSendResponse(safeSendResponse, { error: 'No active tab found' });
           return;
         }
 
@@ -211,20 +310,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (previousTab) {
           // Get tab details
           const tabDetails = await chrome.tabs.get(previousTab.tabId);
-          sendResponse({
+          safeSendResponse(safeSendResponse, {
             success: true,
             tab: tabDetails,
             previousTabEntry: previousTab
           });
         } else {
-          sendResponse({
+          safeSendResponse(safeSendResponse, {
             success: false,
             message: 'No previous tab available'
           });
         }
       } catch (error) {
         console.error('Error getting previous tab:', error);
-        sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+        safeSendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
     return true; // Asynchronous response
@@ -233,7 +332,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       try {
         if (tabs.length === 0) {
-          sendResponse({ error: 'No active tab found' });
+          safeSendResponse({ error: 'No active tab found' });
           return;
         }
 
@@ -246,16 +345,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           if (previousTab.windowId) {
             chrome.windows.update(previousTab.windowId, { focused: true });
           }
-          sendResponse({ success: true });
+          safeSendResponse({ success: true });
         } else {
-          sendResponse({
+          safeSendResponse({
             success: false,
             message: 'No previous tab available'
           });
         }
       } catch (error) {
         console.error('Error switching to previous tab:', error);
-        sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+        safeSendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
     return true; // Asynchronous response
@@ -275,17 +374,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const tabIds = Array.isArray(message.tabIds) ? message.tabIds : (message.tabId ? [message.tabId] : []);
 
     if (tabIds.length === 0) {
-      sendResponse({ success: false, error: 'No tab IDs provided' });
+      safeSendResponse({ success: false, error: 'No tab IDs provided' });
       return;
     }
 
     chrome.tabs.remove(tabIds, () => {
       if (chrome.runtime.lastError) {
         console.error('Error closing tabs:', chrome.runtime.lastError.message);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
       } else {
         console.log(`Successfully closed ${tabIds.length} tab(s)`);
-        sendResponse({ success: true, closedCount: tabIds.length });
+        safeSendResponse({ success: true, closedCount: tabIds.length });
       }
     });
     return true;
@@ -335,10 +434,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
       if (tabsToClose.length > 0) {
         chrome.tabs.remove(tabsToClose, () => {
-          sendResponse({ success: true, closedCount: tabsToClose.length });
+          safeSendResponse({ success: true, closedCount: tabsToClose.length });
         });
       } else {
-        sendResponse({ success: true, closedCount: 0 });
+        safeSendResponse({ success: true, closedCount: 0 });
       }
     });
     return true; // Asynchronous response
@@ -347,14 +446,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const { tabIds, groupName } = message;
 
     if (!tabIds || tabIds.length === 0) {
-      sendResponse({ success: false, error: 'No tab IDs provided' });
+      safeSendResponse({ success: false, error: 'No tab IDs provided' });
       return;
     }
 
     chrome.tabs.group({ tabIds }, (groupId) => {
       if (chrome.runtime.lastError) {
         console.error('Error creating tab group:', chrome.runtime.lastError.message);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
       } else {
         // Set group name if provided
         if (groupName) {
@@ -362,12 +461,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             if (chrome.runtime.lastError) {
               console.error('Error setting group name:', chrome.runtime.lastError.message);
             }
-            sendResponse({ success: true, groupId, message: `Created group "${groupName}" with ${tabIds.length} tabs` });
+            safeSendResponse({ success: true, groupId, message: `Created group "${groupName}" with ${tabIds.length} tabs` });
           });
         } else {
           const defaultName = `Group ${new Date().toLocaleTimeString()}`;
           chrome.tabGroups.update(groupId, { title: defaultName }, () => {
-            sendResponse({ success: true, groupId, message: `Created group "${defaultName}" with ${tabIds.length} tabs` });
+            safeSendResponse({ success: true, groupId, message: `Created group "${defaultName}" with ${tabIds.length} tabs` });
           });
         }
       }
@@ -378,7 +477,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const { groupId } = message;
 
     if (!groupId) {
-      sendResponse({ success: false, error: 'No group ID provided' });
+      safeSendResponse({ success: false, error: 'No group ID provided' });
       return;
     }
 
@@ -386,7 +485,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabs.query({ groupId }, (tabs) => {
       if (chrome.runtime.lastError) {
         console.error('Error querying group tabs:', chrome.runtime.lastError.message);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
         return;
       }
 
@@ -397,14 +496,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         chrome.tabs.ungroup(tabIds as [number, ...number[]], () => {
           if (chrome.runtime.lastError) {
             console.error('Error ungrouping tabs:', chrome.runtime.lastError.message);
-            sendResponse({ success: false, error: chrome.runtime.lastError.message });
+            safeSendResponse({ success: false, error: chrome.runtime.lastError.message });
           } else {
             console.log(`Successfully ungrouped ${tabIds.length} tabs from group ${groupId}`);
-            sendResponse({ success: true, message: `Ungrouped ${tabIds.length} tabs` });
+            safeSendResponse({ success: true, message: `Ungrouped ${tabIds.length} tabs` });
           }
         });
       } else {
-        sendResponse({ success: false, error: 'No tabs found in group' });
+        safeSendResponse({ success: false, error: 'No tabs found in group' });
       }
     });
     return true; // Asynchronous response
@@ -413,9 +512,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.tabGroups.query({}, (groups) => {
       if (chrome.runtime.lastError) {
         console.error('Error fetching tab groups:', chrome.runtime.lastError.message);
-        sendResponse([]);
+        safeSendResponse([]);
       } else {
-        sendResponse(groups);
+        safeSendResponse(groups);
       }
     });
     return true; // Asynchronous response
