@@ -99,7 +99,7 @@ Here's a breakdown of the technical requirements for each feature:
     *   This command will list existing Chrome Tab Groups for selection.
     *   Selecting a group and pressing Enter will ungroup the tabs using `chrome.tabs.ungroup()` without closing the tabs.
 
-# Gemini's Execution Plan
+# Claude's Execution Plan
 I will approach this in phases, focusing on one feature or a small set of related features at a time, ensuring each step is testable and stable.
 
 **Phase 1: Tab Browsing History & Previous Tab Command**
@@ -164,5 +164,5 @@ I will approach this in phases, focusing on one feature or a small set of relate
 3.  **Refine Command Mode Contextual Search:**
     *   Implement more sophisticated filtering for `fuse.js` based on `activeCommand`.
 
-# Gemini's execution summary
+# Claude's execution summary
 *TODO - Populate post the execution of the entire plan is completed*
