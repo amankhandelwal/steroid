@@ -145,7 +145,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     // Default: show command suggestions and tabs
     if (!queryState.trim()) {
       // Empty query - show recent tabs
-      const recentTabs = tabs.slice(0, 10).map(tab => ({
+      const recentTabs = tabs.slice(0, 30).map(tab => ({
         type: 'tab' as const,
         tab
       }));
@@ -162,7 +162,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
         tab.title?.toLowerCase().includes(lowerQuery) ||
         tab.url?.toLowerCase().includes(lowerQuery)
       )
-      .slice(0, 5)
+      .slice(0, 30)
       .map(tab => ({
         type: 'tab' as const,
         tab
