@@ -44,11 +44,12 @@ Here's a breakdown of the technical requirements for each feature:
     *   **Constraint:** Max stack size of 100. Older entries beyond this limit should be removed.
     *   **Constraint:** No duplicate entries. If a tab is already in the history and becomes active again, it should be moved to the top (most recent position) of the stack.
     *   Consider edge cases: tab closing, window changes, new tab opening.
+    *   The history should probably be per-window or global, depending on desired behavior. (Let's assume global for now, but this might need clarification).
     *   Persist this history across browser sessions (using `chrome.storage`).
 *   **Previous Tab Command:**
     *   Add a new command type and action in `commandParser.ts` and `CommandPalette.tsx`.
     *   The action should retrieve the last tab from the history and switch to it using `chrome.tabs.update` and `chrome.windows.update`.
-    *   The command's title in the palette should dynamically display the previous tab's title/URL.
+    *   The command's title in the palette should dynamically display the previous tab's title/URL. This will require fetching the tab details from `chrome.tabs` based on the stored ID.
 
 **2. Search Results enhancements:**
 *   **Default Sorting by Chronological Order:**
@@ -75,14 +76,14 @@ Here's a breakdown of the technical requirements for each feature:
     *   Modify the `useEffect` for `keydown` in `CommandPalette.tsx` to handle "Tab" key for adding/removing items from `selectedTabIds`.
     *   "Arrow" keys should navigate the list as usual.
 *   **UI for Selected Tabs:**
-    *   Render the selected tabs above the search results in `CommandPalette.tsx` This will involve iterating `selectedTabIds` and fetching tab details.
+    *   Render the selected tabs above the search results in `CommandPalette.tsx`. This will involve iterating `selectedTabIds` and fetching tab details.
 *   **Execute on Selected:**
     *   When "Enter" is pressed, if `selectedTabIds` is not empty, the active command should be executed on all selected tabs. This will require modifying the `handleItemClick` logic and potentially the `chrome.runtime.sendMessage` calls to accept an array of `tabId`s.
 
-**5. Tab Group Action (using Chrome's native tab grouping feature):
+**5. Tab Group Action (using Chrome's native tab grouping feature):**
 *   **Permissions:** Add `tabGroups` permission to `manifest.json`.
 *   **"Create Tab Group" Command:**
-    *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
+    *   New command in `commandParser.ts` and `CommandPalette.tsx`.
     *   This command will enter a "Tab Group creation mode" (a specific command mode).
     *   In this mode, the user selects multiple tabs using the bulk action mechanism.
     *   Upon "Enter", the selected tabs will be grouped using `chrome.tabs.group()`.
@@ -92,31 +93,76 @@ Here's a breakdown of the technical requirements for each feature:
 *   **Bulk Operations on Tab Groups:**
     *   Extend existing bulk actions (e.g., "Close Tab") to accept a tab group as a target. This will involve querying `chrome.tabGroups` to get tab IDs within the group and applying the action.
 
-**6. Delete Tab Group Action (using Chrome's native tab grouping feature):
+**6. Delete Tab Group Action (using Chrome's native tab grouping feature):**
 *   **"Delete Tab Group" Command:**
     *   New command in `commandParser.ts` and `CommandPalette.tsx`.
     *   This command will list existing Chrome Tab Groups for selection.
     *   Selecting a group and pressing Enter will ungroup the tabs using `chrome.tabs.ungroup()` without closing the tabs.
 
-# Gemini's execution summary
-- Implemented `TabStateManager` in `src/background.ts` to track tab access times and previous tab history, persisting data in `chrome.storage.local`.
-- Re-enabled and implemented `GET_TAB_ACCESS_TIMES`, `SWITCH_TO_PREVIOUS_TAB`, and `GET_PREVIOUS_TAB_DETAILS` message handlers in `src/background.ts`.
-- Refactored `src/components/CommandPalette.tsx` to include `commandSuggestions` in the `fuse` search, improving command discoverability.
-- Updated `searchResults` `useMemo` in `src/components/CommandPalette.tsx` to correctly display sorted tabs, command suggestions, and contextual search results based on query and command mode.
-- Refined `handleItemClick` in `src/components/CommandPalette.tsx` to correctly enter command mode for actions requiring further interaction.
-- Added `storage` permission to `public/manifest.json` to resolve `TypeError: Cannot read properties of undefined (reading 'local')` in the background script.
-- Simplified `commandSuggestions` `useMemo` in `src/components/CommandPalette.tsx` to remove direct dependency on `previousTabDetails` and updated `searchResults` `useMemo` to dynamically set the "Previous Tab" title.
-- Restructured `searchResults` `useMemo` in `src/components/CommandPalette.tsx` to prioritize direct command matches and ensure tab search works correctly.
-- Lowered `Fuse.js` `threshold` to `0.2` in `src/components/CommandPalette.tsx` to make fuzzy search less strict.
-- Handled `undefined` `tab.id` in `uniqueResultsMap` key generation in `src/components/CommandPalette.tsx` for robustness.
+# Gemini's Execution Plan
+I will approach this in phases, focusing on one feature or a small set of related features at a time, ensuring each step is testable and stable.
 
-# Issues:
-- [ ] Search is broken - No tabs are being displayed. I'm not able to search or switch between tabs
-- [ ] If I'm typing "Prev", Ideally I'd expect a suggestion for "Previous Tab" which I should be able to select. But instead, I'm getting an option to google "Prev". I have to actually type the entire command to search. This seems to be working fine for "Close Duplicate tabs command"
-- [ ] Close Tab(s) command is broken. Now it's not usable
-- [ ] Previous Tab command is broken. It's not working
-- [ ] Command mode doesn't seem to be working at all. On pressing Enter on `Close Tab(s)` Command, nothing happens
-- [ ] Double shift has also stopped working now. Additionally I'm getting this error in the background service worker's logs: Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'local')
-- [ ] content.js:49 Uncaught ReferenceError: commandSuggestions is not defined
-- [ ] Can't search across all tabs. The Tab search is now broken
-- [ ] Tab search is still not working
+**Phase 1: Tab Browsing History & Previous Tab Command**
+
+1.  **Implement Tab History Tracking:**
+    *   Modify `background.ts` to listen for `chrome.tabs.onActivated` events.
+    *   Store a stack of `tabId`s in `chrome.storage.local`.
+    *   **Implement logic to ensure max stack size of 100 and no duplicate entries (move to front behavior).**
+    *   Create a utility function in `background.ts` to manage this history (push, pop, get previous).
+2.  **Add "Previous Tab" Command:**
+    *   Update `commandParser.ts` to recognize a "previous tab" command.
+    *   Modify `CommandPalette.tsx`:
+        *   Add a new `ActionItem` for "Previous Tab" to `commandSuggestions`.
+        *   The `action` for this item will send a message to `background.ts` to switch to the previous tab.
+        *   Dynamically update the title of this `ActionItem` to show the previous tab's name/URL. This will require `background.ts` to send back the previous tab's details.
+
+**Phase 2: Search Results Enhancements**
+
+1.  **Implement Tab Access Time Tracking:**
+    *   Modify `background.ts` to track `lastAccessed` timestamp for each tab using `chrome.tabs.onActivated` and `chrome.storage.local`.
+2.  **Sort Default Search Results:**
+    *   Modify `CommandPalette.tsx`'s `searchResults` `useMemo` to sort tabs by `lastAccessed` when the query is empty.
+3.  **Conditional Command Suggestions:**
+    *   Modify `CommandPalette.tsx`'s `searchResults` `useMemo` to only display `commandSuggestions` when `query.trim().length > 0`.
+
+**Phase 3: Command Mode & Bulk Actions (Initial)**
+
+1.  **Refine Command Mode Entry:**
+    *   Modify `handleItemClick` to conditionally set `commandMode` and `activeCommand` *only* for commands that require further interaction (e.g., "Close" with a query, "Create Tab Group").
+    *   For immediate execution commands, `handleItemClick` should trigger the action and then `onClose()`.
+2.  **UI for Command Mode:**
+    *   Update the input placeholder in `CommandPalette.tsx` to reflect `activeCommand`.
+3.  **Basic Bulk Selection:**
+    *   Add `selectedTabIds` state to `CommandPalette.tsx`.
+    *   Modify `useEffect` for `keydown` to handle "Tab" key for adding/removing items from `selectedTabIds`.
+    *   Render selected tabs above search results.
+4.  **Execute Bulk Close:**
+    *   Modify the "Close" command's action to accept multiple `tabId`s from `selectedTabIds` and send them to `background.ts`.
+    *   Update `background.ts` to handle `CLOSE_TAB` message with an array of `tabId`s.
+
+**Phase 4: Native Tab Group Management**
+
+1.  **Add `tabGroups` Permission:**
+    *   Modify `public/manifest.json` to include the `tabGroups` permission.
+2.  **"Create Tab Group" Command:**
+    *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
+    *   Implement command mode for group creation, leveraging bulk selection.
+    *   Use `chrome.tabs.group()` to create the group from selected tabs.
+    *   Implement a mechanism to prompt the user for a group name or assign a default.
+3.  **"Delete Tab Group" Command:**
+    *   Add command to `commandParser.ts` and `CommandPalette.tsx`.
+    *   List existing Chrome Tab Groups for selection (using `chrome.tabGroups.query()`).
+    *   Action to ungroup tabs using `chrome.tabs.ungroup()`.
+
+**Phase 5: Tab Group Enhancements & Refinements**
+
+1.  **Search Indexing for Tab Groups:**
+    *   Modify `CommandPalette.tsx`'s `searchResults` to include existing Chrome Tab Group names (from `chrome.tabGroups.query()`) in fuzzy search.
+2.  **Bulk Operations on Tab Groups:**
+    *   Extend existing bulk actions (e.g., "Close") to accept a tab group as a target.
+    *   Modify `background.ts` to query `chrome.tabGroups` for tab IDs within the group and apply the action.
+3.  **Refine Command Mode Contextual Search:**
+    *   Implement more sophisticated filtering for `fuse.js` based on `activeCommand`.
+
+# Gemini's execution summary
+*TODO - Populate post the execution of the entire plan is completed*
