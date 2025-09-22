@@ -87,16 +87,13 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     fetchTabGroups();
   }, [fetchTabs, fetchTabGroups]);
 
-  // Get current command
+  // Get current command (only when explicitly set, not from query parsing)
   const currentCommand = useMemo(() => {
     if (activeCommand) {
       return commandRegistry.getCommand(activeCommand);
     }
-
-    // Try to find command from query
-    const { command } = commandRegistry.parseQuery(queryState);
-    return command;
-  }, [queryState, activeCommand]);
+    return null;
+  }, [activeCommand]);
 
   // Generate search results
   const searchResults = useMemo(() => {
@@ -110,12 +107,12 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       activeCommand
     };
 
-    if (currentCommand) {
-      // If we have a specific command, get its search results
+    if (currentCommand && commandMode) {
+      // Only use single command mode when explicitly in command mode
       let results = currentCommand.getSearchResults(context);
 
       // In command mode, filter out already selected tabs
-      if (commandMode && selectedTabIds.size > 0) {
+      if (selectedTabIds.size > 0) {
         results = results.filter(item => {
           if (item.type === 'tab') {
             return !selectedTabIds.has(item.tab.id!);
@@ -127,7 +124,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       return results;
     }
 
-    // No specific command, show command suggestions and tabs
+    // Default: show command suggestions and tabs
     if (!queryState.trim()) {
       // Empty query - show recent tabs
       const recentTabs = tabs.slice(0, 10).map(tab => ({

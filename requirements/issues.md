@@ -22,17 +22,14 @@ In the search Command mode commands are not appearing at all. The following comm
 Ideally in the search mode, if I navigate to a tab and press the backtick, that tab should close. Right now nothing happens. The command palette just closes.
 
 # Search is broken - 1
-When I type Close, Ideally I should get the following search results
+When I type Close, Ideally I should get the following search results (all of these should be visible to me)
 1. Close current tab
 2. Close {query_name}
 3. Close Tabs (Multiple Tabs - Command mode)
 4. Close Duplicate Tabs
 5. Any other tab containing the word Close
-However this is not happening. Instead I just get one search result - "Close current tab"
-You can model Close Tab, Close Tabs and Close Current Tab as separate commands too if that helps.
-- Close Tab - Closes single tab based on search `close {query_name}`
-- Close Current Tab - Closes the current tab
-- Close Tabs - Command Mode - Select multiple tabs for closure
+
+However this is not happening. Instead I just get one search result at a time based on what I've typed. Search should match and display all commands and tabs that match the search query
 
 # Search is broken - 2
 Imagine I have a couple of google.com tabs opened on my browser
