@@ -30,7 +30,7 @@ export class SelectionKeys {
     // Enter - Execute selected item(s) or enter command mode
     const enterHandler = KeybindingManager.createHandler('enter', (event) => {
       const context = this.manager.getContext();
-      if (context.isModalOpen) {
+      if (context.isModalOpen && !context.isInputFocused) {
         this.actions.executeSelected();
         return false; // Prevent default
       }
