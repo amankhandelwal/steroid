@@ -14,10 +14,7 @@ export class CloseDuplicateTabsCommand extends BaseCommand {
   readonly multiSelect = false;
 
   matches(query: string): boolean {
-    console.log(`CloseDuplicateTabsCommand.matches called with query: "${query}"`);
-    const result = super.matches(query);
-    console.log(`CloseDuplicateTabsCommand.matches result:`, result);
-    return result;
+    return super.matches(query);
   }
 
   getSearchResults(context: CommandContext): SearchResultItem[] {

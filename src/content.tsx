@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import styleText from "./index.css?inline"; // Import CSS as a string
 
-console.log("Steroid content script loaded.");
 
 // Create a host element for the Shadow DOM
 const host = document.createElement("div");

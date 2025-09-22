@@ -20,7 +20,6 @@ export function parseCommand(input: string): ParsedCommand {
   for (const engine of searchEngines) {
     for (const prefix of engine.prefix) {
       if (lowerInput.startsWith(`${prefix} `)) {
-        console.log(`CommandParser: Using search engine config for ${engine.name}`);
         return {
           type: engine.id as CommandType, // Cast to CommandType, assuming engine.id matches
           query: input.substring(prefix.length + 1).trim(),

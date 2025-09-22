@@ -44,12 +44,12 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
   // Navigation handlers
   const handleMoveUp = useCallback(() => {
-    setActiveItemIndex((prev: number) => Math.max(0, prev - 1));
-  }, [setActiveItemIndex]);
+    setActiveItemIndex(Math.max(0, activeItemIndex - 1));
+  }, [setActiveItemIndex, activeItemIndex]);
 
   const handleMoveDown = useCallback(() => {
-    setActiveItemIndex((prev: number) => Math.min(totalItems - 1, prev + 1));
-  }, [setActiveItemIndex, totalItems]);
+    setActiveItemIndex(Math.min(totalItems - 1, activeItemIndex + 1));
+  }, [setActiveItemIndex, totalItems, activeItemIndex]);
 
   const handleMoveToFirst = useCallback(() => {
     setActiveItemIndex(0);
@@ -60,22 +60,17 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   }, [setActiveItemIndex, totalItems]);
 
   const handlePageUp = useCallback(() => {
-    setActiveItemIndex((prev: number) => Math.max(0, prev - 10));
-  }, [setActiveItemIndex]);
+    setActiveItemIndex(Math.max(0, activeItemIndex - 10));
+  }, [setActiveItemIndex, activeItemIndex]);
 
   const handlePageDown = useCallback(() => {
-    setActiveItemIndex((prev: number) => Math.min(totalItems - 1, prev + 10));
-  }, [setActiveItemIndex, totalItems]);
+    setActiveItemIndex(Math.min(totalItems - 1, activeItemIndex + 10));
+  }, [setActiveItemIndex, totalItems, activeItemIndex]);
 
   // Selection handlers
   const handleExecuteSelected = useCallback(() => {
-    console.log('CommandPaletteNew: handleExecuteSelected called');
-    console.log('CommandPaletteNew: activeItemIndex:', activeItemIndex);
-    console.log('CommandPaletteNew: searchResults length:', searchResults.length);
     const activeItem = searchResults[activeItemIndex];
-    console.log('CommandPaletteNew: activeItem:', activeItem);
     if (!activeItem) {
-      console.log('CommandPaletteNew: No active item, returning');
       return;
     }
 
@@ -92,24 +87,17 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         onClose();
       }
     } else if (activeItem.type === 'action') {
-      console.log('CommandPaletteNew: Processing action item:', activeItem.id, activeItem.title);
       // Check if this is a command suggestion (ID ends with -suggestion)
       if (activeItem.id.endsWith('-suggestion')) {
-        console.log('CommandPaletteNew: This is a command suggestion');
         // This is a command suggestion - find and execute the command
         const commandId = activeItem.id.replace('-suggestion', '');
-        console.log('CommandPaletteNew: Command ID:', commandId);
         const command = currentCommand || commandRegistry.getCommand(commandId);
-        console.log('CommandPaletteNew: Found command:', command);
 
         if (command) {
-          console.log('CommandPaletteNew: Command mode:', command.mode);
           if (command.mode === 'SingleExecution') {
-            console.log('CommandPaletteNew: Executing single execution command');
             // Execute immediately without relying on state
             executeCommand(command.id);
           } else if (command.mode === 'CommandMode') {
-            console.log('CommandPaletteNew: Entering command mode');
             // Enter command mode
             setCommandMode(true);
             setActiveCommand(command.id);
@@ -118,11 +106,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           }
         }
       } else if (activeItem.action) {
-        console.log('CommandPaletteNew: This is a regular action item, calling action function');
         // This is a regular action item with a function
         activeItem.action();
-      } else {
-        console.log('CommandPaletteNew: No action found for item');
       }
     } else if (activeItem.type === 'closeTabAction') {
       chrome.runtime.sendMessage({

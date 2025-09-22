@@ -2,7 +2,6 @@
  * This is the background service worker.
  * It is responsible for managing tabs, handling commands, and other core extension logic.
  */
-console.log("Steroid background script loaded.");
 
 // Inject content script into existing tabs when extension starts/updates
 async function injectContentScriptIntoExistingTabs() {
@@ -29,9 +28,8 @@ async function injectContentScriptIntoExistingTabs() {
               target: { tabId: tab.id },
               files: ['content.js']
             });
-            console.log(`Content script injected into tab: ${tab.url}`);
           } else {
-            console.log(`Content script already exists in tab: ${tab.url}`);
+            // Content script already exists
           }
         } catch (error) {
           // Silently ignore injection failures (usually due to protected pages)
@@ -71,7 +69,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
             target: { tabId: activeInfo.tabId },
             files: ['content.js']
           });
-          console.log(`Content script injected into activated tab: ${tab.url}`);
         }
       } catch (error) {
         // Silently ignore injection failures
@@ -82,7 +79,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     // Continue with existing tab history tracking
     await pushTabToHistory(activeInfo.tabId, activeInfo.windowId);
     await updateTabAccessTime(activeInfo.tabId);
-    console.log(`Tab activated: ${activeInfo.tabId} in window ${activeInfo.windowId}`);
   } catch (error) {
     console.error('Error handling tab activation:', error);
   }
@@ -134,7 +130,6 @@ async function pushTabToHistory(tabId: number, windowId: number): Promise<void> 
   }
 
   await saveTabHistory(newHistory);
-  console.log(`Tab ${tabId} added to history. History size: ${newHistory.length}`);
 }
 
 /**
@@ -180,7 +175,6 @@ async function cleanupTabHistory(): Promise<void> {
 
   if (cleanedHistory.length !== history.length) {
     await saveTabHistory(cleanedHistory);
-    console.log(`History cleaned. Removed ${history.length - cleanedHistory.length} closed tabs`);
   }
 }
 
@@ -234,7 +228,6 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     const existingTabIds = tabs.map(tab => tab.id).filter(id => id !== undefined) as number[];
     await cleanupTabAccessTimes(existingTabIds);
 
-    console.log(`Tab removed: ${tabId}. Cleaned up history and access times.`);
   } catch (error) {
     console.error('Error handling tab removal:', error);
   }
@@ -384,7 +377,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             console.error('Error closing current tab:', chrome.runtime.lastError.message);
             safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
           } else {
-            console.log('Successfully closed current tab');
             safeSendResponse(sendResponse, { success: true, message: 'Closed current tab' });
           }
         });
@@ -408,7 +400,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         console.error('Error closing tabs:', chrome.runtime.lastError.message);
         safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
       } else {
-        console.log(`Successfully closed ${tabIds.length} tab(s)`);
         safeSendResponse(sendResponse, { success: true, closedCount: tabIds.length });
       }
     });
@@ -424,7 +415,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const urlMap = new Map<string, number[]>();
       const tabsToClose: number[] = [];
 
-      console.log('All tabs:', tabs);
 
       tabs.forEach((tab) => {
         if (tab.url && tab.id) {
@@ -443,11 +433,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
       });
 
-      console.log('URL Map after processing:', urlMap);
 
       urlMap.forEach((tabIds, url) => {
         if (tabIds.length > 1) {
-          console.log(`Found ${tabIds.length} duplicates for URL: ${url}. Keeping tab ID ${tabIds[0]} and closing the rest.`);
           // Keep the first tab, close the rest
           tabIds.slice(1).forEach((tabId) => {
             tabsToClose.push(tabId);
@@ -455,7 +443,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
       });
 
-      console.log('Tabs to close:', tabsToClose);
 
       if (tabsToClose.length > 0) {
         chrome.tabs.remove(tabsToClose, () => {
@@ -523,7 +510,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             console.error('Error ungrouping tabs:', chrome.runtime.lastError.message);
             safeSendResponse(sendResponse, { success: false, error: chrome.runtime.lastError.message });
           } else {
-            console.log(`Successfully ungrouped ${tabIds.length} tabs from group ${groupId}`);
             safeSendResponse(sendResponse, { success: true, message: `Ungrouped ${tabIds.length} tabs` });
           }
         });

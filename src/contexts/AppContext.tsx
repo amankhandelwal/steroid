@@ -20,7 +20,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const contextValue: AppContextType = {
     version: '1.0.0',
     extensionId: chrome?.runtime?.id || 'development',
-    isProduction: process.env.NODE_ENV === 'production'
+    isProduction: import.meta.env.PROD
   };
 
   return (

@@ -14,14 +14,10 @@ function App() {
     let lastShiftPress = 0;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      console.log('App: Key pressed:', event.key, 'Modal open:', isOpen); // ADDED FOR DEBUGGING
-
       if (event.key === 'Shift' && !isOpen) {
         const now = Date.now();
         const timeDiff = now - lastShiftPress;
-        console.log('App: Shift pressed, time diff:', timeDiff); // ADDED FOR DEBUGGING
         if (timeDiff < 300 && timeDiff > 50) { // Added minimum time to avoid duplicate events
-          console.log('App: Double Shift detected, calling setIsOpen(true)'); // ADDED FOR DEBUGGING
           setIsOpen(true);
           event.preventDefault();
           event.stopPropagation();

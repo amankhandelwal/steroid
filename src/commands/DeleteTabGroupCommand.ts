@@ -58,7 +58,7 @@ export class DeleteTabGroupCommand extends BaseCommand {
 
     if (argument.trim()) {
       const lowerQuery = argument.toLowerCase();
-      groupToDelete = context.tabGroups.find(group =>
+      groupToDelete = context.tabGroups.find((group: chrome.tabGroups.TabGroup) =>
         (group.title && group.title.toLowerCase().includes(lowerQuery)) ||
         group.id.toString().includes(lowerQuery)
       ) || null;

@@ -40,7 +40,6 @@ export function initializeCommands(): void {
   commandRegistry.register(new SearchCommand());
   commandRegistry.register(new OpenUrlCommand());
 
-  console.log('Command system initialized with', commandRegistry.getAllCommands().length, 'commands');
 }
 
 /**

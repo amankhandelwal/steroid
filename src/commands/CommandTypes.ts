@@ -52,6 +52,7 @@ export interface CommandExecutionContext {
   query: string;
   selectedTabIds: Set<number>;
   commandMode: boolean;
+  tabGroups: chrome.tabGroups.TabGroup[];
   onClose: () => void;
   setCommandMode: (mode: boolean) => void;
   setActiveCommand: (command: string | null) => void;
