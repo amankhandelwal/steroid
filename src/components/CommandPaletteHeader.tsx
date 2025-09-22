@@ -50,7 +50,7 @@ const CommandPaletteHeader = forwardRef<HTMLInputElement, CommandPaletteHeaderPr
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 text-lg border-none outline-none bg-transparent placeholder-gray-400"
+            className="flex-1 text-lg border-none outline-none bg-transparent placeholder-gray-400 text-gray-800"
           />
           {hasSelection && (
             <div className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
