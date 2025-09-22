@@ -2,7 +2,7 @@
  * CommandPalette - Refactored version using new command system and hooks
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { commandRegistry } from '../commands';
@@ -16,6 +16,8 @@ interface CommandPaletteProps {
 }
 
 const CommandPalette = ({ onClose }: CommandPaletteProps) => {
+  const resultsContainerRef = useRef<HTMLDivElement>(null);
+
   const {
     // State
     query,
@@ -186,20 +188,36 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
   // Scroll active item into view
   useEffect(() => {
-    const activeElement = document.querySelector(`[data-item-index="${activeItemIndex}"]`);
-    if (activeElement) {
-      activeElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'nearest'
-      });
+    if (resultsContainerRef.current) {
+      const container = resultsContainerRef.current;
+      const activeElement = container.querySelector(`[data-item-index="${activeItemIndex}"]`) as HTMLElement;
+
+      if (activeElement) {
+        const containerHeight = container.clientHeight;
+        const scrollTop = container.scrollTop;
+        const elementTop = activeElement.offsetTop;
+        const elementHeight = activeElement.offsetHeight;
+
+        // Check if element is visible
+        const elementBottom = elementTop + elementHeight;
+        const visibleTop = scrollTop;
+        const visibleBottom = scrollTop + containerHeight;
+
+        if (elementTop < visibleTop) {
+          // Element is above visible area - scroll up
+          container.scrollTop = elementTop;
+        } else if (elementBottom > visibleBottom) {
+          // Element is below visible area - scroll down
+          container.scrollTop = elementBottom - containerHeight;
+        }
+      }
     }
   }, [activeItemIndex]);
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-20 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-96 flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         <CommandPaletteHeader
           ref={inputRef}
           query={query}
@@ -220,7 +238,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         />
 
         {/* Results */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={resultsContainerRef} className="flex-1 overflow-y-auto">
           {searchResults.length > 0 ? (
             searchResults.map((item, index) => (
               <SearchResultItem
