@@ -74,6 +74,6 @@ export class CloseMultipleTabsCommand extends BaseCommand {
     if (argument.trim()) {
       return `Close Tabs: ${argument}`;
     }
-    return 'Close Multiple Tabs';
+    return 'Close Tabs (Multiple)';
   }
 }

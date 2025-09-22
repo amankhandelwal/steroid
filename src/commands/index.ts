@@ -8,6 +8,7 @@
 import { PreviousTabCommand } from './PreviousTabCommand';
 import { CloseDuplicateTabsCommand } from './CloseDuplicateTabsCommand';
 import { CloseTabCommand } from './CloseTabCommand';
+import { CloseCurrentTabCommand } from './CloseCurrentTabCommand';
 import { CloseMultipleTabsCommand } from './CloseMultipleTabsCommand';
 import { NewTabCommand } from './NewTabCommand';
 import { CreateTabGroupCommand } from './CreateTabGroupCommand';
@@ -33,6 +34,7 @@ export function initializeCommands(): void {
   commandRegistry.register(new PreviousTabCommand());
   commandRegistry.register(new CloseDuplicateTabsCommand());
   commandRegistry.register(new CloseTabCommand());
+  commandRegistry.register(new CloseCurrentTabCommand());
   commandRegistry.register(new CloseMultipleTabsCommand());
   commandRegistry.register(new NewTabCommand());
   commandRegistry.register(new CreateTabGroupCommand());
