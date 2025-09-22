@@ -5,9 +5,13 @@
 interface CommandPaletteFooterProps {
   commandMode: boolean;
   hasResults: boolean;
+  hasSelection: boolean;
 }
 
-const CommandPaletteFooter = ({ commandMode, hasResults }: CommandPaletteFooterProps) => {
+const CommandPaletteFooter = ({ commandMode, hasResults, hasSelection }: CommandPaletteFooterProps) => {
+  // Detect platform for appropriate modifier key display
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const commandKey = isMac ? '⌘' : 'Ctrl';
   return (
     <div className="p-3 border-t border-gray-200 text-xs text-gray-500 bg-gray-50">
       <div className="flex justify-between items-center">
@@ -34,6 +38,12 @@ const CommandPaletteFooter = ({ commandMode, hasResults }: CommandPaletteFooterP
             <span>select all</span>
             <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Ctrl+D</kbd>
             <span>clear</span>
+            {hasSelection && (
+              <>
+                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">{commandKey}+Enter</kbd>
+                <span>execute</span>
+              </>
+            )}
           </div>
         )}
       </div>

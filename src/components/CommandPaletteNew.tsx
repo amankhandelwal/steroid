@@ -165,7 +165,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     onClearSelection: clearSelection,
     onCloseModal: handleCloseModal,
     onEnterCommandMode: handleEnterCommandMode,
-    onExitCommandMode: handleExitCommandMode
+    onExitCommandMode: handleExitCommandMode,
+    onExecuteCurrentCommand: executeCurrentCommand
   });
 
   // Auto-focus input on mount
@@ -244,6 +245,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         <CommandPaletteFooter
           commandMode={commandMode}
           hasResults={searchResults.length > 0}
+          hasSelection={hasSelection}
         />
       </div>
     </div>

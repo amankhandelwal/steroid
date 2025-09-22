@@ -26,6 +26,7 @@ export interface UseKeyboardNavigationProps {
   onCloseModal: () => void;
   onEnterCommandMode: () => void;
   onExitCommandMode: () => void;
+  onExecuteCurrentCommand: () => void;
 }
 
 export function useKeyboardNavigation(props: UseKeyboardNavigationProps) {
@@ -49,7 +50,8 @@ export function useKeyboardNavigation(props: UseKeyboardNavigationProps) {
       clearSelection: props.onClearSelection,
       closeModal: props.onCloseModal,
       enterCommandMode: props.onEnterCommandMode,
-      exitCommandMode: props.onExitCommandMode
+      exitCommandMode: props.onExitCommandMode,
+      executeCurrentCommand: props.onExecuteCurrentCommand
     };
 
     // Create keybinding system

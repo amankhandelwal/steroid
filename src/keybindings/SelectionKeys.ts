@@ -12,6 +12,7 @@ export interface SelectionActions {
   closeModal: () => void;
   enterCommandMode: () => void;
   exitCommandMode: () => void;
+  executeCurrentCommand: () => void;
 }
 
 export class SelectionKeys {
@@ -102,6 +103,24 @@ export class SelectionKeys {
       }
     });
 
+    // Cmd+Enter - Execute current command (Mac primary)
+    const cmdEnterHandler = KeybindingManager.createHandler('enter', (event) => {
+      const context = this.manager.getContext();
+      if (context.isModalOpen && context.commandMode && !context.isInputFocused) {
+        this.actions.executeCurrentCommand();
+        return false; // Prevent default
+      }
+    }, { meta: true });
+
+    // Ctrl+Enter - Execute current command (universal fallback)
+    const ctrlEnterHandler = KeybindingManager.createHandler('enter', (event) => {
+      const context = this.manager.getContext();
+      if (context.isModalOpen && context.commandMode && !context.isInputFocused) {
+        this.actions.executeCurrentCommand();
+        return false; // Prevent default
+      }
+    }, { ctrl: true });
+
     // Store handlers for cleanup
     this.handlers = [
       enterHandler,
@@ -111,7 +130,9 @@ export class SelectionKeys {
       spaceHandler,
       selectAllHandler,
       clearSelectionHandler,
-      deleteHandler
+      deleteHandler,
+      cmdEnterHandler,
+      ctrlEnterHandler
     ];
 
     // Register all handlers

@@ -8,7 +8,7 @@ The Tabs are being displayed now. However a bunch of things are not working:
    should be triggered for "hello world" using that search engine. This is not happening. Infact, nothing happens
 6. Command Mode execution commands (Delete tab group / create tab group) don't show up in the search.
 
-# Isolated commands are not running:
+# SOLVED - Isolated commands are not running:
 Let's say I select Close Duplicate Tabs command and press Enter -> the command doesn't actually run. Nothing happens
 The same happens when I select Previous tabs, Close current tab
 
@@ -21,7 +21,7 @@ In the search Command mode commands are not appearing at all. The following comm
 # Pressing the backtick doesn't actually do anything
 Ideally in the search mode, if I navigate to a tab and press the backtick, that tab should close. Right now nothing happens. The command palette just closes.
 
-# Search is broken - 1
+# SOLVED - Search is broken - 1
 When I type Close, Ideally I should get the following search results (all of these should be visible to me)
 1. Close current tab
 2. Close {query_name}
