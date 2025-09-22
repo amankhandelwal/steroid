@@ -2,6 +2,10 @@
  * Keybinding System - Main exports and initialization
  */
 
+import { KeybindingManager } from './KeybindingManager';
+import { NavigationKeys } from './NavigationKeys';
+import { SelectionKeys } from './SelectionKeys';
+
 export { KeybindingManager } from './KeybindingManager';
 export { NavigationKeys } from './NavigationKeys';
 export { SelectionKeys } from './SelectionKeys';
@@ -23,8 +27,8 @@ export type {
  * Create a complete keybinding setup
  */
 export function createKeybindingSystem(
-  navigationActions: NavigationActions,
-  selectionActions: SelectionActions
+  navigationActions: import('./NavigationKeys').NavigationActions,
+  selectionActions: import('./SelectionKeys').SelectionActions
 ) {
   const manager = new KeybindingManager();
   const navigationKeys = new NavigationKeys(manager, navigationActions);

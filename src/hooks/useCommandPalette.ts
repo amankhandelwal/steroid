@@ -45,7 +45,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
   }, []);
 
   // State
-  const [query, setQueryState] = useState('');
+  const [queryState, setQueryState] = useState('');
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
   const [tabGroups, setTabGroups] = useState<chrome.tabGroups.TabGroup[]>([]);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
@@ -63,8 +63,6 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     setQueryState(newQuery); // Immediate update for UI responsiveness
     debouncedSetQuery(newQuery); // Debounced update for search logic
   }, [debouncedSetQuery]);
-
-  const query = queryState;
 
   // Fetch tabs
   const fetchTabs = useCallback(async () => {
@@ -95,9 +93,9 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     }
 
     // Try to find command from query
-    const { command } = commandRegistry.parseQuery(query);
+    const { command } = commandRegistry.parseQuery(queryState);
     return command;
-  }, [query, activeCommand]);
+  }, [queryState, activeCommand]);
 
   // Generate search results
   const searchResults = useMemo(() => {
@@ -105,7 +103,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       tabs,
       tabGroups,
       selectedTabIds,
-      query,
+      query: queryState,
       commandMode,
       activeCommand
     };
@@ -128,7 +126,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     }
 
     // No specific command, show command suggestions and tabs
-    if (!query.trim()) {
+    if (!queryState.trim()) {
       // Empty query - show recent tabs
       return tabs.slice(0, 10).map(tab => ({
         type: 'tab' as const,
@@ -137,10 +135,10 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     }
 
     // Show command suggestions
-    const suggestions = commandRegistry.getCommandSuggestions(query);
+    const suggestions = commandRegistry.getCommandSuggestions(queryState);
 
     // Also show matching tabs
-    const lowerQuery = query.toLowerCase();
+    const lowerQuery = queryState.toLowerCase();
     const matchingTabs = tabs
       .filter(tab =>
         tab.title?.toLowerCase().includes(lowerQuery) ||
@@ -153,7 +151,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       }));
 
     return [...suggestions, ...matchingTabs];
-  }, [tabs, tabGroups, selectedTabIds, query, commandMode, activeCommand, currentCommand]);
+  }, [tabs, tabGroups, selectedTabIds, queryState, commandMode, activeCommand, currentCommand]);
 
   // Selection management
   const toggleTabSelection = useCallback((tabId: number) => {
@@ -184,7 +182,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     }
 
     const context: CommandExecutionContext = {
-      query,
+      query: queryState,
       selectedTabIds,
       commandMode,
       onClose,
@@ -218,11 +216,11 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     } catch (error) {
       console.error('Error executing command:', error);
     }
-  }, [currentCommand, query, selectedTabIds, commandMode, onClose, fetchTabs, fetchTabGroups]);
+  }, [currentCommand, queryState, selectedTabIds, commandMode, onClose, fetchTabs, fetchTabGroups]);
 
   // Reset state
   const reset = useCallback(() => {
-    setQuery('');
+    setQueryState('');
     setActiveItemIndex(0);
     setCommandMode(false);
     setActiveCommand(null);
@@ -235,7 +233,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   return {
     // State
-    query,
+    query: queryState,
     tabs,
     tabGroups,
     searchResults,
