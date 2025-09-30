@@ -24,6 +24,7 @@ export interface UseKeyboardNavigationProps {
   onSelectAll: () => void;
   onClearSelection: () => void;
   onCloseModal: () => void;
+  onCloseHighlightedTab: () => void;
   onEnterCommandMode: () => void;
   onExitCommandMode: () => void;
   onExecuteCurrentCommand: () => void;
@@ -49,6 +50,7 @@ export function useKeyboardNavigation(props: UseKeyboardNavigationProps) {
       selectAll: props.onSelectAll,
       clearSelection: props.onClearSelection,
       closeModal: props.onCloseModal,
+      closeHighlightedTab: props.onCloseHighlightedTab,
       enterCommandMode: props.onEnterCommandMode,
       exitCommandMode: props.onExitCommandMode,
       executeCurrentCommand: props.onExecuteCurrentCommand

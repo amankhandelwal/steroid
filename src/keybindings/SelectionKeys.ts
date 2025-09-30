@@ -10,6 +10,7 @@ export interface SelectionActions {
   selectAll: () => void;
   clearSelection: () => void;
   closeModal: () => void;
+  closeHighlightedTab: () => void;
   enterCommandMode: () => void;
   exitCommandMode: () => void;
   executeCurrentCommand: () => void;
@@ -86,11 +87,11 @@ export class SelectionKeys {
       }
     });
 
-    // Tilde (~) or backtick (`) - Alternative close key
-    const tildeHandler = KeybindingManager.createHandler('`', (event) => {
+    // Backtick (`) - Close highlighted tab without closing modal
+    const backtickHandler = KeybindingManager.createHandler('`', (event) => {
       const context = this.manager.getContext();
-      if (context.isModalOpen) {
-        this.actions.closeModal();
+      if (context.isModalOpen && !context.isInputFocused) {
+        this.actions.closeHighlightedTab();
         return false; // Prevent default
       }
     });
@@ -117,7 +118,7 @@ export class SelectionKeys {
     this.handlers = [
       enterHandler,
       escapeHandler,
-      tildeHandler,
+      backtickHandler,
       tabHandler,
       selectAllHandler,
       clearSelectionHandler,

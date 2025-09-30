@@ -37,6 +37,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     toggleTabSelection,
     clearSelection,
     selectAll,
+    fetchTabs,
     executeCommand,
     executeCurrentCommand,
     handleInputSubmit,
@@ -152,6 +153,18 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     onClose();
   }, [reset, onClose]);
 
+  const handleCloseHighlightedTab = useCallback(() => {
+    const activeItem = searchResults[activeItemIndex];
+    if (activeItem?.type === 'tab') {
+      chrome.runtime.sendMessage({
+        type: 'CLOSE_TAB',
+        tabId: activeItem.tab.id
+      });
+      // Refresh tab list after closing
+      fetchTabs();
+    }
+  }, [searchResults, activeItemIndex, fetchTabs]);
+
   // Keyboard navigation setup
   const { inputRef } = useKeyboardNavigation({
     isModalOpen: true,
@@ -171,6 +184,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     onSelectAll: selectAll,
     onClearSelection: clearSelection,
     onCloseModal: handleCloseModal,
+    onCloseHighlightedTab: handleCloseHighlightedTab,
     onEnterCommandMode: handleEnterCommandMode,
     onExitCommandMode: handleExitCommandMode,
     onExecuteCurrentCommand: executeCurrentCommand

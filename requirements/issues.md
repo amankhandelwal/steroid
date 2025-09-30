@@ -12,13 +12,13 @@ The Tabs are being displayed now. However a bunch of things are not working:
 Let's say I select Close Duplicate Tabs command and press Enter -> the command doesn't actually run. Nothing happens
 The same happens when I select Previous tabs, Close current tab
 
-# Command Mode commands are not appearing at all:
+# SOLVED - Command Mode commands are not appearing at all:
 In the search Command mode commands are not appearing at all. The following commands don't appear at all
 1. Create Tab group
 2. Delete Tab group
 3. Close Tabs (multiple tabs)
 
-# Pressing the backtick doesn't actually do anything
+# SOLVED - Pressing the backtick doesn't actually do anything
 Ideally in the search mode, if I navigate to a tab and press the backtick, that tab should close. Right now nothing happens. The command palette just closes.
 
 # SOLVED - Search is broken - 1
