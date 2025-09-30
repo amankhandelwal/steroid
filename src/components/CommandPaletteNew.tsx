@@ -161,9 +161,10 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
       chrome.runtime.sendMessage({
         type: 'CLOSE_TAB',
         tabId: activeItem.tab.id
+      }, () => {
+        // Refresh after tab is actually closed
+        fetchTabs();
       });
-      // Refresh tab list after closing
-      fetchTabs();
     }
   }, [searchResults, activeItemIndex, fetchTabs]);
 
