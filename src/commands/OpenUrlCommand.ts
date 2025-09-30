@@ -8,7 +8,7 @@ import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecu
 export class OpenUrlCommand extends BaseCommand {
   readonly id = 'url';
   readonly name = 'Open';
-  readonly aliases = ['open', 'url', 'go', 'navigate'];
+  readonly aliases = ['open', 'url', 'navigate'];
   readonly description = 'Open any valid URL in a new tab';
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
