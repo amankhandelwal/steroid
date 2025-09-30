@@ -75,61 +75,58 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     setActiveItemIndex(Math.min(totalItems - 1, activeItemIndex + 10));
   }, [setActiveItemIndex, totalItems, activeItemIndex]);
 
-  // Selection handlers
+  // Selection handlers - extracted by type
+  const handleTabItem = useCallback((item: any) => {
+    if (commandMode && currentCommand?.multiSelect) {
+      toggleTabSelection(item.tab.id!);
+    } else {
+      chrome.runtime.sendMessage({ type: 'SWITCH_TO_TAB', tabId: item.tab.id });
+      onClose();
+    }
+  }, [commandMode, currentCommand, toggleTabSelection, onClose]);
+
+  const handleActionItem = useCallback((item: any) => {
+    if (item.id.endsWith('-suggestion')) {
+      const commandId = item.id.replace('-suggestion', '');
+      const command = currentCommand || commandRegistry.getCommand(commandId);
+
+      if (command) {
+        if (command.mode === 'SingleExecution') {
+          executeCommand(command.id);
+        } else if (command.mode === 'CommandMode') {
+          setCommandMode(true);
+          setActiveCommand(command.id);
+          setQuery('');
+          clearSelection();
+        }
+      }
+    } else if (item.action) {
+      item.action();
+    }
+  }, [currentCommand, executeCommand, setCommandMode, setActiveCommand, setQuery, clearSelection]);
+
+  const handleCloseTabAction = useCallback((item: any) => {
+    chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabId: item.tab.id });
+    onClose();
+  }, [onClose]);
+
+  const handleTabGroupItem = useCallback((item: any) => {
+    if (commandMode && currentCommand?.id === 'delete_group') {
+      executeCommand(currentCommand.id, undefined, item.group.id);
+    }
+  }, [commandMode, currentCommand, executeCommand]);
+
   const handleExecuteSelected = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
-    if (!activeItem) {
-      return;
-    }
+    if (!activeItem) return;
 
-    if (activeItem.type === 'tab') {
-      if (commandMode && currentCommand?.multiSelect) {
-        // Toggle selection in multi-select mode
-        toggleTabSelection(activeItem.tab.id!);
-      } else {
-        // Switch to tab
-        chrome.runtime.sendMessage({
-          type: 'SWITCH_TO_TAB',
-          tabId: activeItem.tab.id
-        });
-        onClose();
-      }
-    } else if (activeItem.type === 'action') {
-      // Check if this is a command suggestion (ID ends with -suggestion)
-      if (activeItem.id.endsWith('-suggestion')) {
-        // This is a command suggestion - find and execute the command
-        const commandId = activeItem.id.replace('-suggestion', '');
-        const command = currentCommand || commandRegistry.getCommand(commandId);
-
-        if (command) {
-          if (command.mode === 'SingleExecution') {
-            // Execute immediately without relying on state
-            executeCommand(command.id);
-          } else if (command.mode === 'CommandMode') {
-            // Enter command mode
-            setCommandMode(true);
-            setActiveCommand(command.id);
-            setQuery(''); // Clear input for command mode search
-            clearSelection(); // Clear any existing selection
-          }
-        }
-      } else if (activeItem.action) {
-        // This is a regular action item with a function
-        activeItem.action();
-      }
-    } else if (activeItem.type === 'closeTabAction') {
-      chrome.runtime.sendMessage({
-        type: 'CLOSE_TAB',
-        tabId: activeItem.tab.id
-      });
-      onClose();
-    } else if (activeItem.type === 'tabGroup') {
-      // For Delete Tab Group command, execute on Enter
-      if (commandMode && currentCommand?.id === 'delete_group') {
-        executeCommand(currentCommand.id, undefined, activeItem.group.id);
-      }
+    switch (activeItem.type) {
+      case 'tab': return handleTabItem(activeItem);
+      case 'action': return handleActionItem(activeItem);
+      case 'closeTabAction': return handleCloseTabAction(activeItem);
+      case 'tabGroup': return handleTabGroupItem(activeItem);
     }
-  }, [searchResults, activeItemIndex, commandMode, currentCommand, toggleTabSelection, executeCommand, onClose]);
+  }, [searchResults, activeItemIndex, handleTabItem, handleActionItem, handleCloseTabAction, handleTabGroupItem]);
 
   const handleToggleSelection = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
