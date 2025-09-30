@@ -123,8 +123,13 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
         tabId: activeItem.tab.id
       });
       onClose();
+    } else if (activeItem.type === 'tabGroup') {
+      // For Delete Tab Group command, execute on Enter
+      if (commandMode && currentCommand?.id === 'delete_group') {
+        executeCommand(currentCommand.id, undefined, activeItem.group.id);
+      }
     }
-  }, [searchResults, activeItemIndex, commandMode, currentCommand, toggleTabSelection, executeCurrentCommand, onClose]);
+  }, [searchResults, activeItemIndex, commandMode, currentCommand, toggleTabSelection, executeCommand, onClose]);
 
   const handleToggleSelection = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
