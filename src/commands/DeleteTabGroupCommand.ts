@@ -42,32 +42,33 @@ export class DeleteTabGroupCommand extends BaseCommand {
   }
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
-    // For tab groups, we need to get the selected group from the search results
-    // Since this is a CommandMode command, we look at what was selected
-    const argument = this.extractArgument(context.query);
-
-    if (!argument.trim() && context.selectedTabIds.size === 0) {
-      return {
-        success: false,
-        error: 'No tab group selected for deletion'
-      };
-    }
-
     // Find the group to delete
     let groupToDelete: chrome.tabGroups.TabGroup | null = null;
 
-    if (argument.trim()) {
-      const lowerQuery = argument.toLowerCase();
+    // First check if a specific group was selected (via Shift+Enter on highlighted item)
+    if (context.selectedGroupId !== undefined) {
       groupToDelete = context.tabGroups.find((group: chrome.tabGroups.TabGroup) =>
-        (group.title && group.title.toLowerCase().includes(lowerQuery)) ||
-        group.id.toString().includes(lowerQuery)
+        group.id === context.selectedGroupId
       ) || null;
+    }
+
+    // Otherwise, try to find by query argument
+    if (!groupToDelete) {
+      const argument = this.extractArgument(context.query);
+
+      if (argument.trim()) {
+        const lowerQuery = argument.toLowerCase();
+        groupToDelete = context.tabGroups.find((group: chrome.tabGroups.TabGroup) =>
+          (group.title && group.title.toLowerCase().includes(lowerQuery)) ||
+          group.id.toString().includes(lowerQuery)
+        ) || null;
+      }
     }
 
     if (!groupToDelete) {
       return {
         success: false,
-        error: 'Tab group not found'
+        error: 'No tab group selected for deletion'
       };
     }
 

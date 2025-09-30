@@ -206,11 +206,12 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
   }, [tabs]);
 
   // Execute specific command by ID
-  const executeCommand = useCallback(async (commandId: string, inputValue?: string) => {
+  const executeCommand = useCallback(async (commandId: string, inputValue?: string, selectedGroupId?: number) => {
 
     const context: CommandExecutionContext = {
       query: inputValue || queryState,
       selectedTabIds,
+      selectedGroupId,
       commandMode,
       tabGroups,
       onClose,
@@ -255,8 +256,17 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     if (!currentCommand) {
       return;
     }
-    await executeCommand(currentCommand.id);
-  }, [currentCommand, executeCommand]);
+
+    // Check if the highlighted item is a tab group
+    const activeItem = searchResults[activeItemIndex];
+    let selectedGroupId: number | undefined;
+
+    if (activeItem && activeItem.type === 'tabGroup') {
+      selectedGroupId = activeItem.group.id;
+    }
+
+    await executeCommand(currentCommand.id, undefined, selectedGroupId);
+  }, [currentCommand, executeCommand, searchResults, activeItemIndex]);
 
   // Handle input dialog submission
   const handleInputSubmit = useCallback((value: string) => {
