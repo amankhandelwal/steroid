@@ -2,7 +2,7 @@
  * CommandPalette - Refactored version using new command system and hooks
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { commandRegistry } from '../commands';
@@ -17,7 +17,6 @@ interface CommandPaletteProps {
 
 const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const resultsContainerRef = useRef<HTMLDivElement>(null);
-  const targetCursorPositionRef = useRef<number | null>(null);
 
   const {
     // State
@@ -50,6 +49,9 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     hasSelection,
     currentCommand
   } = useCommandPalette(onClose);
+
+  // Track previous searchResults to detect selection vs query changes
+  const previousSearchResultsRef = useRef<any[]>(searchResults);
 
   // Navigation handlers
   const handleMoveUp = useCallback(() => {
@@ -136,6 +138,10 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     }
   }, [searchResults, activeItemIndex, toggleTabSelection]);
 
+  const handleToggleSelectionById = useCallback((tabId: number) => {
+    toggleTabSelection(tabId);
+  }, [toggleTabSelection]);
+
   const handleEnterCommandMode = useCallback(() => {
     if (currentCommand && currentCommand.mode === 'CommandMode') {
       setCommandMode(true);
@@ -159,14 +165,6 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const handleCloseHighlightedTab = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
     if (activeItem?.type === 'tab') {
-      // Calculate and store the target cursor position before closing
-      // Stay at current index since the next item will shift up to take its place
-      // We want to stay at min(currentIndex, newLength - 1)
-      // Since we're closing 1 tab, newLength will be searchResults.length - 1
-      const newLength = searchResults.length - 1;
-      const targetPosition = Math.min(activeItemIndex, newLength - 1);
-      targetCursorPositionRef.current = Math.max(0, targetPosition);
-
       chrome.runtime.sendMessage({
         type: 'CLOSE_TAB',
         tabId: activeItem.tab.id
@@ -207,17 +205,24 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     inputRef.current?.focus();
   }, []);
 
-  // Reset active index when search results change
-  // But preserve cursor position if a tab was closed via backtick
-  useEffect(() => {
-    if (targetCursorPositionRef.current !== null) {
-      // Use the stored target position and clear it
-      setActiveItemIndex(targetCursorPositionRef.current);
-      targetCursorPositionRef.current = null;
-    } else {
-      // Normal case: reset to 0 (e.g., when user types a query)
+  // Manage cursor position when search results change
+  // Preserve position for selection toggles (length ±1), reset for query changes
+  useLayoutEffect(() => {
+    const prevLength = previousSearchResultsRef.current.length;
+    const currentLength = searchResults.length;
+    const lengthDiff = Math.abs(currentLength - prevLength);
+
+    // Selection toggle changes length by exactly 1 (item filtered in/out)
+    if (lengthDiff === 1) {
+      // Keep cursor at current position, clamped to new array bounds
+      setActiveItemIndex(prev => Math.min(prev, Math.max(0, currentLength - 1)));
+    } else if (lengthDiff !== 0) {
+      // Query change or other update - reset to 0
       setActiveItemIndex(0);
     }
+    // If lengthDiff === 0, don't change cursor (e.g., tab metadata update)
+
+    previousSearchResultsRef.current = searchResults;
   }, [searchResults, setActiveItemIndex]);
 
   // Scroll active item into view
@@ -287,7 +292,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
                   setActiveItemIndex(index);
                   handleExecuteSelected();
                 }}
-                onToggleSelection={toggleTabSelection}
+                onToggleSelection={handleToggleSelectionById}
               />
             ))
           ) : (

@@ -24,8 +24,4 @@ shadowRoot.appendChild(styleElement);
 
 // Mount the React app once
 const root = ReactDOM.createRoot(rootDiv);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+root.render(<App />);
