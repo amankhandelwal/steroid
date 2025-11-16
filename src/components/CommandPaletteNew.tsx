@@ -17,6 +17,7 @@ interface CommandPaletteProps {
 
 const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+  const targetCursorPositionRef = useRef<number | null>(null);
 
   const {
     // State
@@ -158,6 +159,14 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const handleCloseHighlightedTab = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
     if (activeItem?.type === 'tab') {
+      // Calculate and store the target cursor position before closing
+      // Stay at current index since the next item will shift up to take its place
+      // We want to stay at min(currentIndex, newLength - 1)
+      // Since we're closing 1 tab, newLength will be searchResults.length - 1
+      const newLength = searchResults.length - 1;
+      const targetPosition = Math.min(activeItemIndex, newLength - 1);
+      targetCursorPositionRef.current = Math.max(0, targetPosition);
+
       chrome.runtime.sendMessage({
         type: 'CLOSE_TAB',
         tabId: activeItem.tab.id
@@ -199,8 +208,16 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   }, []);
 
   // Reset active index when search results change
+  // But preserve cursor position if a tab was closed via backtick
   useEffect(() => {
-    setActiveItemIndex(0);
+    if (targetCursorPositionRef.current !== null) {
+      // Use the stored target position and clear it
+      setActiveItemIndex(targetCursorPositionRef.current);
+      targetCursorPositionRef.current = null;
+    } else {
+      // Normal case: reset to 0 (e.g., when user types a query)
+      setActiveItemIndex(0);
+    }
   }, [searchResults, setActiveItemIndex]);
 
   // Scroll active item into view
