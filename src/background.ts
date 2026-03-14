@@ -3,7 +3,7 @@
  * It is responsible for managing tabs, handling commands, and other core extension logic.
  */
 
-import { validateApiKey, setApiKey, smartGroupTabs, TabInfo, WindowSuggestion } from './services/openaiService';
+import { validateApiKey, setApiKey, smartGroupTabs, TabInfo, WindowSuggestion, GroupSuggestion } from './services/openaiService';
 
 // Inject content script into existing tabs when extension starts/updates
 async function injectContentScriptIntoExistingTabs() {
@@ -667,6 +667,42 @@ async function applyWindowGroups(
   return { groupCount, tabCount, nextColorIndex: ci };
 }
 
+const MAX_TABS_PER_WINDOW = 15;
+
+/** Split any window suggestion that exceeds the tab limit into multiple windows */
+function enforceWindowTabLimit(windows: WindowSuggestion[]): WindowSuggestion[] {
+  const result: WindowSuggestion[] = [];
+
+  for (const window of windows) {
+    const totalTabs = window.groups.reduce((sum, g) => sum + g.tabIds.length, 0);
+
+    if (totalTabs <= MAX_TABS_PER_WINDOW) {
+      result.push(window);
+      continue;
+    }
+
+    // Split groups across multiple windows, respecting the limit
+    let currentGroups: GroupSuggestion[] = [];
+    let currentCount = 0;
+
+    for (const group of window.groups) {
+      if (currentCount + group.tabIds.length > MAX_TABS_PER_WINDOW && currentGroups.length > 0) {
+        result.push({ groups: currentGroups });
+        currentGroups = [];
+        currentCount = 0;
+      }
+      currentGroups.push(group);
+      currentCount += group.tabIds.length;
+    }
+
+    if (currentGroups.length > 0) {
+      result.push({ groups: currentGroups });
+    }
+  }
+
+  return result;
+}
+
 /** Handle smart grouping: fetch ungrouped tabs, call OpenAI, organize into windows and groups */
 async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Promise<void> {
   try {
@@ -701,6 +737,9 @@ async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Pro
       return;
     }
 
+    // Enforce max tabs per window as a safeguard against AI overloading a single window
+    const enforcedWindows = enforceWindowTabLimit(result.windows);
+
     // Build a map of tabId -> current windowId for move decisions
     const tabWindowMap = new Map<number, number>();
     for (const tab of ungroupedTabs) {
@@ -712,7 +751,7 @@ async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Pro
     let colorIndex = 0;
     const usedWindowIds = new Set<number>();
 
-    for (const windowSuggestion of result.windows) {
+    for (const windowSuggestion of enforcedWindows) {
       // Collect all tabIds in this window suggestion
       const allTabIds = windowSuggestion.groups.flatMap(g => g.tabIds);
       let targetWindowId = getMostCommonWindowId(allTabIds, tabWindowMap);
@@ -739,7 +778,7 @@ async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Pro
       success: true,
       groupCount: totalGroupCount,
       tabCount: totalTabCount,
-      message: `Created ${totalGroupCount} groups with ${totalTabCount} tabs across ${result.windows.length} windows`
+      message: `Created ${totalGroupCount} groups with ${totalTabCount} tabs across ${enforcedWindows.length} windows`
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

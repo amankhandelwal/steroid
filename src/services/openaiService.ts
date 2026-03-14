@@ -69,13 +69,15 @@ function buildGroupingMessages(tabs: TabInfo[]): { system: string; user: string 
     '',
     'Rules:',
     '- Return valid JSON: { "windows": [{ "groups": [{ "groupName": "...", "tabIds": [...] }] }] }',
-    '- Organize tabs into separate windows by high-level workflow or project context',
+    '- HARD LIMIT: Each window MUST have at most 15 tabs total (sum of all tabIds across all groups in that window)',
+    '- Split tabs across multiple windows to stay under the 15-tab limit',
+    '- Organize windows by high-level workflow or project context',
     '- Each window should represent a distinct activity (e.g., one window for work project, another for personal browsing)',
     '- Do NOT keep all tabs in one window just because they are currently together — split them meaningfully',
     '- If tabs are already spread across windows sensibly, preserve that arrangement',
     '- Group names: 1-3 words, concise (e.g., "Dev Docs", "Shopping")',
     '- Every tab must appear exactly once',
-    '- Aim for 2-5 windows and 2-7 groups per window depending on diversity',
+    '- Aim for 2-7 groups per window depending on diversity',
     '- If only 1-2 tabs exist, use a single window with a single group'
   ].join('\n');
 
