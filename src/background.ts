@@ -3,7 +3,7 @@
  * It is responsible for managing tabs, handling commands, and other core extension logic.
  */
 
-import { validateApiKey, setApiKey, smartGroupTabs, TabInfo } from './services/openaiService';
+import { validateApiKey, setApiKey, smartGroupTabs, TabInfo, WindowSuggestion } from './services/openaiService';
 
 // Inject content script into existing tabs when extension starts/updates
 async function injectContentScriptIntoExistingTabs() {
@@ -577,10 +577,79 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   } else if (message.type === "SMART_GROUP_TABS") {
     handleSmartGroupTabs(sendResponse);
     return true; // Asynchronous response
+
+  } else if (message.type === "UNGROUP_ALL_TABS") {
+    handleUngroupAllTabs(sendResponse);
+    return true; // Asynchronous response
   }
 });
 
-/** Handle smart grouping: fetch ungrouped tabs, call OpenAI, create Chrome tab groups */
+/** Determine the best existing windowId for a set of tabs (most common window) */
+function getMostCommonWindowId(tabIds: number[], tabWindowMap: Map<number, number>): number | null {
+  const windowCounts = new Map<number, number>();
+
+  for (const tabId of tabIds) {
+    const windowId = tabWindowMap.get(tabId);
+    if (windowId !== undefined) {
+      windowCounts.set(windowId, (windowCounts.get(windowId) || 0) + 1);
+    }
+  }
+
+  let bestWindowId: number | null = null;
+  let bestCount = 0;
+  for (const [windowId, count] of windowCounts) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestWindowId = windowId;
+    }
+  }
+
+  return bestWindowId;
+}
+
+/** Apply groups within a single target window, moving tabs as needed */
+async function applyWindowGroups(
+  windowSuggestion: WindowSuggestion,
+  targetWindowId: number,
+  tabWindowMap: Map<number, number>,
+  colorIndex: number
+): Promise<{ groupCount: number; tabCount: number; nextColorIndex: number }> {
+  const colors: chrome.tabGroups.ColorEnum[] = ['blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
+  let groupCount = 0;
+  let tabCount = 0;
+  let ci = colorIndex;
+
+  for (const group of windowSuggestion.groups) {
+    try {
+      // Move tabs that aren't already in this window
+      for (const tabId of group.tabIds) {
+        const currentWindowId = tabWindowMap.get(tabId);
+        if (currentWindowId !== undefined && currentWindowId !== targetWindowId) {
+          await chrome.tabs.move(tabId, { windowId: targetWindowId, index: -1 });
+          tabWindowMap.set(tabId, targetWindowId);
+        }
+      }
+
+      const groupId = await chrome.tabs.group({
+        tabIds: group.tabIds,
+        createProperties: { windowId: targetWindowId }
+      });
+      await chrome.tabGroups.update(groupId, {
+        title: group.groupName,
+        color: colors[ci % colors.length]
+      });
+      groupCount++;
+      tabCount += group.tabIds.length;
+      ci++;
+    } catch (err) {
+      console.error(`Failed to create group "${group.groupName}":`, err);
+    }
+  }
+
+  return { groupCount, tabCount, nextColorIndex: ci };
+}
+
+/** Handle smart grouping: fetch ungrouped tabs, call OpenAI, organize into windows and groups */
 async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Promise<void> {
   try {
     const allTabs = await chrome.tabs.query({});
@@ -598,7 +667,8 @@ async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Pro
       .map(tab => ({
         id: tab.id!,
         title: tab.title || 'Untitled',
-        url: tab.url!
+        url: tab.url!,
+        windowId: tab.windowId
       }));
 
     if (ungroupedTabs.length === 0) {
@@ -608,36 +678,77 @@ async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Pro
 
     const result = await smartGroupTabs(ungroupedTabs);
 
-    if (!result.success || !result.groups) {
+    if (!result.success || !result.windows) {
       safeSendResponse(sendResponse, { success: false, error: result.error });
       return;
     }
 
-    // Cycle through colors for visual distinction
-    const colors: chrome.tabGroups.ColorEnum[] = ['blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
-    let groupCount = 0;
-    let tabCount = 0;
+    // Build a map of tabId -> current windowId for move decisions
+    const tabWindowMap = new Map<number, number>();
+    for (const tab of ungroupedTabs) {
+      tabWindowMap.set(tab.id, tab.windowId);
+    }
 
-    for (let i = 0; i < result.groups.length; i++) {
-      const group = result.groups[i];
-      try {
-        const groupId = await chrome.tabs.group({ tabIds: group.tabIds });
-        await chrome.tabGroups.update(groupId, {
-          title: group.groupName,
-          color: colors[i % colors.length]
-        });
-        groupCount++;
-        tabCount += group.tabIds.length;
-      } catch (err) {
-        console.error(`Failed to create group "${group.groupName}":`, err);
+    let totalGroupCount = 0;
+    let totalTabCount = 0;
+    let colorIndex = 0;
+    const usedWindowIds = new Set<number>();
+
+    for (const windowSuggestion of result.windows) {
+      // Collect all tabIds in this window suggestion
+      const allTabIds = windowSuggestion.groups.flatMap(g => g.tabIds);
+      let targetWindowId = getMostCommonWindowId(allTabIds, tabWindowMap);
+
+      // If this windowId is already taken by a previous suggestion, create a new window
+      if (targetWindowId === null || usedWindowIds.has(targetWindowId)) {
+        const firstTabId = allTabIds[0];
+        const newWindow = await chrome.windows.create({ tabId: firstTabId });
+        targetWindowId = newWindow.id!;
+        tabWindowMap.set(firstTabId, targetWindowId);
       }
+
+      usedWindowIds.add(targetWindowId);
+
+      const { groupCount, tabCount, nextColorIndex } = await applyWindowGroups(
+        windowSuggestion, targetWindowId, tabWindowMap, colorIndex
+      );
+      totalGroupCount += groupCount;
+      totalTabCount += tabCount;
+      colorIndex = nextColorIndex;
     }
 
     safeSendResponse(sendResponse, {
       success: true,
-      groupCount,
-      tabCount,
-      message: `Created ${groupCount} groups with ${tabCount} tabs`
+      groupCount: totalGroupCount,
+      tabCount: totalTabCount,
+      message: `Created ${totalGroupCount} groups with ${totalTabCount} tabs across ${result.windows.length} windows`
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    safeSendResponse(sendResponse, { success: false, error: message });
+  }
+}
+
+/** Handle ungrouping all tabs in the current window */
+async function handleUngroupAllTabs(sendResponse: (response?: any) => void): Promise<void> {
+  try {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+
+    const groupedTabIds = tabs
+      .filter(tab => tab.id !== undefined && tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE)
+      .map(tab => tab.id!);
+
+    if (groupedTabIds.length === 0) {
+      safeSendResponse(sendResponse, { success: true, ungroupedCount: 0, message: 'No grouped tabs to ungroup.' });
+      return;
+    }
+
+    await chrome.tabs.ungroup(groupedTabIds as [number, ...number[]]);
+
+    safeSendResponse(sendResponse, {
+      success: true,
+      ungroupedCount: groupedTabIds.length,
+      message: `Ungrouped ${groupedTabIds.length} tabs`
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

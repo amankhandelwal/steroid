@@ -16,6 +16,7 @@ import { SearchCommand } from './SearchCommand';
 import { OpenUrlCommand } from './OpenUrlCommand';
 import { SetApiKeyCommand } from './SetApiKeyCommand';
 import { SmartGroupCommand } from './SmartGroupCommand';
+import { UngroupAllCommand } from './UngroupAllCommand';
 
 // Import registry
 import { commandRegistry } from './CommandRegistry';
@@ -43,6 +44,7 @@ export function initializeCommands(): void {
   commandRegistry.register(new OpenUrlCommand());
   commandRegistry.register(new SetApiKeyCommand());
   commandRegistry.register(new SmartGroupCommand());
+  commandRegistry.register(new UngroupAllCommand());
 
 }
 

@@ -15,6 +15,7 @@ export interface TabInfo {
   id: number;
   title: string;
   url: string;
+  windowId: number;
 }
 
 export interface GroupSuggestion {
@@ -22,9 +23,13 @@ export interface GroupSuggestion {
   tabIds: number[];
 }
 
+export interface WindowSuggestion {
+  groups: GroupSuggestion[];
+}
+
 export interface SmartGroupResult {
   success: boolean;
-  groups?: GroupSuggestion[];
+  windows?: WindowSuggestion[];
   error?: string;
 }
 
@@ -56,21 +61,26 @@ export async function validateApiKey(key: string): Promise<boolean> {
 
 // --- Prompt Construction ---
 
-/** Build the system and user messages for tab grouping */
+/** Build the system and user messages for tab grouping with window management */
 function buildGroupingMessages(tabs: TabInfo[]): { system: string; user: string } {
   const system = [
-    'You are a tab organizer. Given a list of browser tabs, group them into logical categories.',
+    'You are a browser tab organizer. Given a list of tabs (with their current window IDs),',
+    'organize them into windows and groups within each window.',
+    '',
     'Rules:',
-    '- Return valid JSON: { "groups": [{ "groupName": "...", "tabIds": [...] }] }',
-    '- Group names must be 1-3 words, concise and descriptive (e.g., "Social Media", "Dev Docs", "Shopping")',
-    '- Every tab must appear in exactly one group',
-    '- Aim for 2-7 groups depending on tab diversity',
-    '- Group by topic/purpose, not by domain alone',
-    '- If only 1-2 tabs exist, put them in a single group'
+    '- Return valid JSON: { "windows": [{ "groups": [{ "groupName": "...", "tabIds": [...] }] }] }',
+    '- Organize tabs into separate windows by high-level workflow or project context',
+    '- Each window should represent a distinct activity (e.g., one window for work project, another for personal browsing)',
+    '- Do NOT keep all tabs in one window just because they are currently together — split them meaningfully',
+    '- If tabs are already spread across windows sensibly, preserve that arrangement',
+    '- Group names: 1-3 words, concise (e.g., "Dev Docs", "Shopping")',
+    '- Every tab must appear exactly once',
+    '- Aim for 2-5 windows and 2-7 groups per window depending on diversity',
+    '- If only 1-2 tabs exist, use a single window with a single group'
   ].join('\n');
 
-  const tabData = tabs.map(t => ({ id: t.id, title: t.title, url: t.url }));
-  const user = `Group these ${tabs.length} tabs:\n${JSON.stringify(tabData)}`;
+  const tabData = tabs.map(t => ({ id: t.id, title: t.title, url: t.url, windowId: t.windowId }));
+  const user = `Organize these ${tabs.length} tabs into windows and groups:\n${JSON.stringify(tabData)}`;
 
   return { system, user };
 }
@@ -112,20 +122,29 @@ async function callOpenAI(apiKey: string, tabs: TabInfo[]): Promise<string> {
 
 // --- Response Parsing ---
 
-/** Parse and validate the grouping response from OpenAI */
-function parseGroupingResponse(responseText: string, validTabIds: Set<number>): GroupSuggestion[] {
+/** Parse a single group object from the AI response */
+function parseGroup(g: { groupName?: string; tabIds?: number[] }, validTabIds: Set<number>): GroupSuggestion {
+  return {
+    groupName: String(g.groupName || 'Unnamed'),
+    tabIds: (g.tabIds || []).filter(id => validTabIds.has(id))
+  };
+}
+
+/** Parse and validate the window+group response from OpenAI */
+function parseSmartOrganizeResponse(responseText: string, validTabIds: Set<number>): WindowSuggestion[] {
   const parsed = JSON.parse(responseText);
 
-  if (!parsed.groups || !Array.isArray(parsed.groups)) {
-    throw new Error('Invalid response format: missing "groups" array');
+  if (!parsed.windows || !Array.isArray(parsed.windows)) {
+    throw new Error('Invalid response format: missing "windows" array');
   }
 
-  return parsed.groups
-    .map((g: { groupName?: string; tabIds?: number[] }) => ({
-      groupName: String(g.groupName || 'Unnamed'),
-      tabIds: (g.tabIds || []).filter(id => validTabIds.has(id))
+  return parsed.windows
+    .map((w: { groups?: Array<{ groupName?: string; tabIds?: number[] }> }) => ({
+      groups: (w.groups || [])
+        .map(g => parseGroup(g, validTabIds))
+        .filter(g => g.tabIds.length > 0)
     }))
-    .filter((g: GroupSuggestion) => g.tabIds.length > 0);
+    .filter((w: WindowSuggestion) => w.groups.length > 0);
 }
 
 // --- Orchestrator ---
@@ -148,13 +167,13 @@ export async function smartGroupTabs(tabs: TabInfo[]): Promise<SmartGroupResult>
     const responseText = await callOpenAI(apiKey, cappedTabs);
 
     const validIds = new Set(cappedTabs.map(t => t.id));
-    const groups = parseGroupingResponse(responseText, validIds);
+    const windows = parseSmartOrganizeResponse(responseText, validIds);
 
-    if (groups.length === 0) {
+    if (windows.length === 0) {
       return { success: false, error: 'AI returned no valid groups. Please try again.' };
     }
 
-    return { success: true, groups };
+    return { success: true, windows };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error occurred';
 
