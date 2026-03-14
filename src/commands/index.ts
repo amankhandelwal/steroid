@@ -14,6 +14,8 @@ import { CreateTabGroupCommand } from './CreateTabGroupCommand';
 import { DeleteTabGroupCommand } from './DeleteTabGroupCommand';
 import { SearchCommand } from './SearchCommand';
 import { OpenUrlCommand } from './OpenUrlCommand';
+import { SetApiKeyCommand } from './SetApiKeyCommand';
+import { SmartGroupCommand } from './SmartGroupCommand';
 
 // Import registry
 import { commandRegistry } from './CommandRegistry';
@@ -39,6 +41,8 @@ export function initializeCommands(): void {
   commandRegistry.register(new DeleteTabGroupCommand());
   commandRegistry.register(new SearchCommand());
   commandRegistry.register(new OpenUrlCommand());
+  commandRegistry.register(new SetApiKeyCommand());
+  commandRegistry.register(new SmartGroupCommand());
 
 }
 

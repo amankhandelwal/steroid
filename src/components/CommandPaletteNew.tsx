@@ -28,6 +28,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     selectedTabIds,
     showInputDialog,
     inputConfig,
+    loadingMessage,
+    errorMessage,
 
     // Actions
     setQuery,
@@ -278,7 +280,18 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
         {/* Results */}
         <div ref={resultsContainerRef} className="flex-1 overflow-y-auto">
-          {searchResults.length > 0 ? (
+          {errorMessage ? (
+            <div className="p-8 text-center text-red-500">
+              <div className="text-red-400 text-4xl mb-2">!</div>
+              <div className="font-medium">Error</div>
+              <div className="text-sm mt-1">{errorMessage}</div>
+            </div>
+          ) : loadingMessage ? (
+            <div className="p-8 text-center text-gray-500">
+              <div className="text-gray-400 text-4xl mb-2 animate-pulse">🤖</div>
+              <div>{loadingMessage}</div>
+            </div>
+          ) : searchResults.length > 0 ? (
             searchResults.map((item, index) => (
               <SearchResultItem
                 key={index}
@@ -317,6 +330,8 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
           title={inputConfig.title}
           placeholder={inputConfig.placeholder}
           defaultValue={inputConfig.defaultValue}
+          inputType={inputConfig.inputType}
+          submitLabel={inputConfig.submitLabel}
           onSubmit={handleInputSubmit}
           onCancel={handleInputCancel}
         />

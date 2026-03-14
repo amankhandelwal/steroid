@@ -3,6 +3,8 @@
  * It is responsible for managing tabs, handling commands, and other core extension logic.
  */
 
+import { validateApiKey, setApiKey, smartGroupTabs, TabInfo } from './services/openaiService';
+
 // Inject content script into existing tabs when extension starts/updates
 async function injectContentScriptIntoExistingTabs() {
   try {
@@ -541,5 +543,104 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }
     });
     return true; // Asynchronous response
+
+  } else if (message.type === "SET_API_KEY") {
+    const { apiKey } = message;
+
+    if (!apiKey || typeof apiKey !== 'string') {
+      safeSendResponse(sendResponse, { success: false, error: 'No API key provided' });
+      return;
+    }
+
+    validateApiKey(apiKey).then((isValid) => {
+      if (!isValid) {
+        safeSendResponse(sendResponse, { success: false, error: 'Invalid API key. Please check and try again.' });
+        return;
+      }
+
+      setApiKey(apiKey).then(() => {
+        safeSendResponse(sendResponse, { success: true });
+      }).catch((err) => {
+        safeSendResponse(sendResponse, { success: false, error: `Failed to save key: ${err.message}` });
+      });
+    }).catch((err) => {
+      safeSendResponse(sendResponse, { success: false, error: `Validation failed: ${err.message}` });
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "GET_API_KEY_STATUS") {
+    chrome.storage.local.get('openai_api_key', (result) => {
+      safeSendResponse(sendResponse, { hasKey: !!result.openai_api_key });
+    });
+    return true; // Asynchronous response
+
+  } else if (message.type === "SMART_GROUP_TABS") {
+    handleSmartGroupTabs(sendResponse);
+    return true; // Asynchronous response
   }
 });
+
+/** Handle smart grouping: fetch ungrouped tabs, call OpenAI, create Chrome tab groups */
+async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Promise<void> {
+  try {
+    const allTabs = await chrome.tabs.query({});
+
+    // Filter to meaningful, ungrouped tabs
+    const ungroupedTabs: TabInfo[] = allTabs
+      .filter(tab =>
+        tab.id !== undefined &&
+        tab.url &&
+        !tab.url.startsWith('chrome://') &&
+        !tab.url.startsWith('chrome-extension://') &&
+        !tab.url.startsWith('edge://') &&
+        tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE
+      )
+      .map(tab => ({
+        id: tab.id!,
+        title: tab.title || 'Untitled',
+        url: tab.url!
+      }));
+
+    if (ungroupedTabs.length === 0) {
+      safeSendResponse(sendResponse, { success: false, error: 'No ungrouped tabs available to group.' });
+      return;
+    }
+
+    const result = await smartGroupTabs(ungroupedTabs);
+
+    if (!result.success || !result.groups) {
+      safeSendResponse(sendResponse, { success: false, error: result.error });
+      return;
+    }
+
+    // Cycle through colors for visual distinction
+    const colors: chrome.tabGroups.ColorEnum[] = ['blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
+    let groupCount = 0;
+    let tabCount = 0;
+
+    for (let i = 0; i < result.groups.length; i++) {
+      const group = result.groups[i];
+      try {
+        const groupId = await chrome.tabs.group({ tabIds: group.tabIds });
+        await chrome.tabGroups.update(groupId, {
+          title: group.groupName,
+          color: colors[i % colors.length]
+        });
+        groupCount++;
+        tabCount += group.tabIds.length;
+      } catch (err) {
+        console.error(`Failed to create group "${group.groupName}":`, err);
+      }
+    }
+
+    safeSendResponse(sendResponse, {
+      success: true,
+      groupCount,
+      tabCount,
+      message: `Created ${groupCount} groups with ${tabCount} tabs`
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    safeSendResponse(sendResponse, { success: false, error: message });
+  }
+}

@@ -12,6 +12,9 @@ export abstract class BaseCommand {
   abstract readonly mode: 'SingleExecution' | 'CommandMode';
   abstract readonly multiSelect: boolean;
 
+  /** Optional loading message shown while the command executes */
+  readonly loadingMessage: string | null = null;
+
   /**
    * Check if this command matches the given query
    */

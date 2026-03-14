@@ -22,7 +22,11 @@ export interface UseCommandPaletteReturn {
     title: string;
     placeholder?: string;
     defaultValue?: string;
+    inputType?: 'text' | 'password';
+    submitLabel?: string;
   } | null;
+  loadingMessage: string | null;
+  errorMessage: string | null;
 
   // Actions
   setQuery: (query: string) => void;
@@ -71,6 +75,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     commandId: string;
     context: CommandExecutionContext;
   } | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Debounced query setter for performance
   const debouncedSetQuery = useMemo(
@@ -80,6 +86,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   const setQuery = useCallback((newQuery: string) => {
     setQueryState(newQuery); // Immediate update for UI responsiveness
+    setErrorMessage(null); // Clear error when user starts typing
     debouncedSetQuery(newQuery); // Debounced update for search logic
   }, [debouncedSetQuery]);
 
@@ -224,7 +231,19 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     };
 
     try {
+      // Clear any previous error
+      setErrorMessage(null);
+
+      // Show loading message if the command declares one
+      const command = commandRegistry.getCommand(commandId);
+      if (command?.loadingMessage) {
+        setLoadingMessage(command.loadingMessage);
+      }
+
       const result = await commandRegistry.executeCommand(commandId, context);
+
+      // Clear loading state
+      setLoadingMessage(null);
 
       if (result.success) {
         if (result.needsInput && result.inputConfig) {
@@ -245,9 +264,12 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
             setActiveCommand(result.newCommandName);
           }
         }
+      } else if (result.error) {
+        setErrorMessage(result.error);
       }
     } catch (error) {
-      // Error handling can be added here if needed
+      setLoadingMessage(null);
+      setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
     }
   }, [queryState, selectedTabIds, commandMode, onClose, fetchTabs, fetchTabGroups]);
 
@@ -277,10 +299,18 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
         query: value
       };
 
+      setLoadingMessage('Processing...');
+
       commandRegistry.executeCommand(pendingCommandExecution.commandId, context).then((result) => {
+        setLoadingMessage(null);
         if (result.success && result.shouldCloseModal) {
           onClose();
+        } else if (!result.success && result.error) {
+          setErrorMessage(result.error);
         }
+      }).catch((error) => {
+        setLoadingMessage(null);
+        setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
       });
     }
 
@@ -307,6 +337,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     setShowInputDialog(false);
     setInputConfig(null);
     setPendingCommandExecution(null);
+    setLoadingMessage(null);
+    setErrorMessage(null);
   }, []);
 
   // Computed values
@@ -325,6 +357,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     selectedTabIds,
     showInputDialog,
     inputConfig,
+    loadingMessage,
+    errorMessage,
 
     // Actions
     setQuery,

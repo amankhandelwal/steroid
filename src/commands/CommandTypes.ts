@@ -51,7 +51,11 @@ export interface CommandExecutionResult {
     title: string;
     placeholder?: string;
     defaultValue?: string;
+    inputType?: 'text' | 'password';
+    submitLabel?: string;
   };
+  showLoading?: boolean;
+  loadingMessage?: string;
 }
 
 export interface CommandExecutionContext {

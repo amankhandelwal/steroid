@@ -8,6 +8,8 @@ interface InputDialogProps {
   title: string;
   placeholder?: string;
   defaultValue?: string;
+  inputType?: 'text' | 'password';
+  submitLabel?: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 }
@@ -16,6 +18,8 @@ const InputDialog = ({
   title,
   placeholder,
   defaultValue = '',
+  inputType = 'text',
+  submitLabel = 'Submit',
   onSubmit,
   onCancel
 }: InputDialogProps) => {
@@ -58,7 +62,7 @@ const InputDialog = ({
         <form onSubmit={handleSubmit}>
           <input
             ref={inputRef}
-            type="text"
+            type={inputType}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -79,7 +83,7 @@ const InputDialog = ({
               disabled={!value.trim()}
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
-              Create Group
+              {submitLabel}
             </button>
           </div>
         </form>
