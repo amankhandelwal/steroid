@@ -607,6 +607,29 @@ function getMostCommonWindowId(tabIds: number[], tabWindowMap: Map<number, numbe
   return bestWindowId;
 }
 
+/** Update a tab group's title and color, retrying with delays if Chrome isn't ready */
+async function updateTabGroupWithRetry(
+  groupId: number,
+  title: string,
+  color: chrome.tabGroups.ColorEnum
+): Promise<void> {
+  const MAX_RETRIES = 3;
+  const DELAY_MS = 200;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      await chrome.tabGroups.update(groupId, { title, color });
+      return;
+    } catch {
+      if (attempt < MAX_RETRIES - 1) {
+        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+      } else {
+        throw new Error(`Failed to update group title "${title}" after ${MAX_RETRIES} attempts`);
+      }
+    }
+  }
+}
+
 /** Apply groups within a single target window, moving tabs as needed */
 async function applyWindowGroups(
   windowSuggestion: WindowSuggestion,
@@ -630,19 +653,14 @@ async function applyWindowGroups(
         }
       }
 
-      const groupId = await chrome.tabs.group({
-        tabIds: group.tabIds,
-        createProperties: { windowId: targetWindowId }
-      });
-      await chrome.tabGroups.update(groupId, {
-        title: group.groupName,
-        color: colors[ci % colors.length]
-      });
+      const groupId = await chrome.tabs.group({ tabIds: group.tabIds });
+
+      await updateTabGroupWithRetry(groupId, group.groupName, colors[ci % colors.length]);
       groupCount++;
       tabCount += group.tabIds.length;
       ci++;
     } catch (err) {
-      console.error(`Failed to create group "${group.groupName}":`, err);
+      console.error(`Failed to create/update group "${group.groupName}":`, err);
     }
   }
 
@@ -729,10 +747,10 @@ async function handleSmartGroupTabs(sendResponse: (response?: any) => void): Pro
   }
 }
 
-/** Handle ungrouping all tabs in the current window */
+/** Handle ungrouping all tabs across all windows */
 async function handleUngroupAllTabs(sendResponse: (response?: any) => void): Promise<void> {
   try {
-    const tabs = await chrome.tabs.query({ currentWindow: true });
+    const tabs = await chrome.tabs.query({});
 
     const groupedTabIds = tabs
       .filter(tab => tab.id !== undefined && tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE)

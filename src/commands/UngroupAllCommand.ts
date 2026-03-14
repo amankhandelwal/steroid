@@ -9,7 +9,7 @@ export class UngroupAllCommand extends BaseCommand {
   readonly id = 'ungroup_all';
   readonly name = 'Ungroup All Tabs';
   readonly aliases = ['ungroup', 'remove groups', 'ungroup all', 'remove all groups', 'disband'];
-  readonly description = 'Remove all tab groups in the current window';
+  readonly description = 'Remove all tab groups across all windows';
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
   readonly loadingMessage = 'Ungrouping all tabs...';
