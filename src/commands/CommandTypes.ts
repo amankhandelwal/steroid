@@ -30,6 +30,13 @@ export interface TabGroupItem {
 
 export type SearchResultItem = TabItem | ActionItem | CloseTabActionItem | TabGroupItem;
 
+/** Minimal snapshot of the previously active tab, prefetched on palette mount. */
+export interface PreviousTabInfo {
+  tabId: number;
+  title: string;
+  url?: string;
+}
+
 export interface CommandContext {
   tabs: chrome.tabs.Tab[];
   tabGroups: chrome.tabGroups.TabGroup[];
@@ -37,6 +44,7 @@ export interface CommandContext {
   query: string;
   commandMode: boolean;
   activeCommand: string | null;
+  previousTab: PreviousTabInfo | null;
 }
 
 export interface CommandExecutionResult {

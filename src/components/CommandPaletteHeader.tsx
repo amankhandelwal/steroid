@@ -1,8 +1,16 @@
 /**
  * CommandPaletteHeader - Header component for the command palette
+ *
+ * Styles live in the sibling `CommandPaletteHeader.css`, which is pulled into
+ * the bundle by `src/index.css` (the single stylesheet injected into the
+ * extension's shadow root).
  */
 
 import { forwardRef } from 'react';
+
+/** Neutral placeholder shown when a tab has no favicon, or its favicon 404s. */
+const FALLBACK_FAVICON =
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
 
 interface SelectedTab {
   id: number;
@@ -18,7 +26,6 @@ interface CommandPaletteHeaderProps {
   hasSelection: boolean;
   selectedCount: number;
   selectedTabs: SelectedTab[];
-  onRemoveSelection: (tabId: number) => void;
 }
 
 const CommandPaletteHeader = forwardRef<HTMLInputElement, CommandPaletteHeaderProps>(
@@ -29,18 +36,21 @@ const CommandPaletteHeader = forwardRef<HTMLInputElement, CommandPaletteHeaderPr
     currentCommandName,
     hasSelection,
     selectedCount,
-    selectedTabs,
-    onRemoveSelection
+    selectedTabs
   }, ref) => {
     const placeholder = commandMode
       ? `Search ${currentCommandName}...`
       : "Type a command or search...";
 
+    const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+      e.currentTarget.src = FALLBACK_FAVICON;
+    };
+
     return (
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-3">
+      <div className="steroid-header">
+        <div className="steroid-header-row">
           {commandMode && currentCommandName && (
-            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+            <div className="steroid-header-badge">
               {currentCommandName}
             </div>
           )}
@@ -50,10 +60,11 @@ const CommandPaletteHeader = forwardRef<HTMLInputElement, CommandPaletteHeaderPr
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 text-lg border-none outline-none bg-transparent placeholder-gray-400 text-gray-800"
+            aria-label={placeholder}
+            className="steroid-header-input"
           />
           {hasSelection && (
-            <div className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <div className="steroid-header-count">
               {selectedCount} selected
             </div>
           )}
@@ -61,30 +72,18 @@ const CommandPaletteHeader = forwardRef<HTMLInputElement, CommandPaletteHeaderPr
 
         {/* Selected tabs display in command mode */}
         {commandMode && hasSelection && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="text-xs text-gray-500 mb-2 font-medium">Selected tabs:</div>
-            <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
+          <div className="steroid-header-selection">
+            <div className="steroid-header-selection-label">Selected tabs:</div>
+            <div className="steroid-header-chips">
               {selectedTabs.map(tab => (
-                <div
-                  key={tab.id}
-                  className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-2 max-w-48"
-                >
+                <div key={tab.id} className="steroid-header-chip">
                   <img
-                    src={tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>'}
+                    src={tab.favIconUrl || FALLBACK_FAVICON}
                     alt=""
-                    className="w-3 h-3 flex-shrink-0"
-                    onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
-                    }}
+                    className="steroid-header-chip-favicon"
+                    onError={handleFaviconError}
                   />
-                  <span className="truncate">{tab.title || 'Untitled'}</span>
-                  <button
-                    onClick={() => onRemoveSelection(tab.id)}
-                    className="text-green-600 hover:text-green-800 hover:bg-green-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
-                    title="Remove from selection"
-                  >
-                    ✕
-                  </button>
+                  <span className="steroid-header-chip-title">{tab.title || 'Untitled'}</span>
                 </div>
               ))}
             </div>

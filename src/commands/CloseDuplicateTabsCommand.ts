@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class CloseDuplicateTabsCommand extends BaseCommand {
   readonly id = 'close_duplicates';
@@ -13,11 +14,7 @@ export class CloseDuplicateTabsCommand extends BaseCommand {
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
 
-  matches(query: string): boolean {
-    return super.matches(query);
-  }
-
-  getSearchResults(context: CommandContext): SearchResultItem[] {
+  getSearchResults(_context: CommandContext): SearchResultItem[] {
     // For SingleExecution commands, show an execution option
     return [{
       type: 'action' as const,
@@ -31,7 +28,8 @@ export class CloseDuplicateTabsCommand extends BaseCommand {
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'CLOSE_DUPLICATE_TABS' }, (response) => {
+      const message: ExtensionMessage = { type: 'CLOSE_DUPLICATE_TABS' };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

@@ -4,6 +4,16 @@
 
 export interface KeyHandler {
   key: string;
+  /**
+   * Physical key position (e.g. `'Backquote'`), per `KeyboardEvent.code`.
+   * When set, matching uses this instead of `key` — `event.key` reflects the
+   * character the active keyboard layout resolves for a key (layout-dependent),
+   * while `event.code` identifies the physical key regardless of layout. Use
+   * `code` for punctuation-position shortcuts that must fire the same key
+   * regardless of what character that position types (e.g. backtick, which
+   * some layouts map to a different character entirely).
+   */
+  code?: string;
   ctrlKey?: boolean;
   shiftKey?: boolean;
   altKey?: boolean;
@@ -16,7 +26,6 @@ export interface KeybindingContext {
   commandMode: boolean;
   hasSelection: boolean;
   selectedCount: number;
-  isInputFocused: boolean;
   activeItemIndex: number;
   totalItems: number;
 }
@@ -28,7 +37,6 @@ export class KeybindingManager {
     commandMode: false,
     hasSelection: false,
     selectedCount: 0,
-    isInputFocused: false,
     activeItemIndex: -1,
     totalItems: 0
   };
@@ -99,12 +107,19 @@ export class KeybindingManager {
    * Check if event matches handler key combination
    */
   private matchesKey(event: KeyboardEvent, handler: KeyHandler): boolean {
-    // Normalize key comparison (case-insensitive for letters)
-    const eventKey = event.key.toLowerCase();
-    const handlerKey = handler.key.toLowerCase();
+    if (handler.code) {
+      // Physical-key matching: layout-independent, unlike `event.key`.
+      if (event.code !== handler.code) {
+        return false;
+      }
+    } else {
+      // Normalize key comparison (case-insensitive for letters)
+      const eventKey = event.key.toLowerCase();
+      const handlerKey = handler.key.toLowerCase();
 
-    if (eventKey !== handlerKey) {
-      return false;
+      if (eventKey !== handlerKey) {
+        return false;
+      }
     }
 
     // Check modifier keys
@@ -127,10 +142,13 @@ export class KeybindingManager {
       shift?: boolean;
       alt?: boolean;
       meta?: boolean;
+      /** Physical key position to match on instead of `key` — see `KeyHandler.code`. */
+      code?: string;
     } = {}
   ): KeyHandler {
     return {
       key,
+      code: modifiers.code,
       ctrlKey: modifiers.ctrl,
       shiftKey: modifiers.shift,
       altKey: modifiers.alt,

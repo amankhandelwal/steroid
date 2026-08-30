@@ -1,5 +1,9 @@
 /**
  * CommandPaletteFooter - Footer component with keyboard shortcuts
+ *
+ * Styles live in the sibling `CommandPaletteFooter.css`, which is pulled into
+ * the bundle by `src/index.css` (the single stylesheet injected into the
+ * extension's shadow root).
  */
 
 interface CommandPaletteFooterProps {
@@ -8,36 +12,40 @@ interface CommandPaletteFooterProps {
   hasSelection: boolean;
 }
 
+interface ShortcutHintProps {
+  /** Key combination as rendered inside the <kbd> chip. */
+  keys: string;
+  /** What the combination does. */
+  label: string;
+}
+
+/** One "<kbd> + description" pair in the hint bar. */
+const ShortcutHint = ({ keys, label }: ShortcutHintProps) => (
+  <span className="steroid-footer-hint">
+    <kbd className="steroid-footer-kbd">{keys}</kbd>
+    <span>{label}</span>
+  </span>
+);
+
 const CommandPaletteFooter = ({ commandMode, hasResults, hasSelection }: CommandPaletteFooterProps) => {
   return (
-    <div className="p-3 border-t border-gray-200 text-xs text-gray-500 bg-gray-50">
-      <div className="flex justify-between items-center">
-        <div className="flex gap-4">
-          <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">↑↓</kbd>
-          <span>navigate</span>
-          <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Enter</kbd>
-          <span>select</span>
+    <div className="steroid-footer">
+      <div className="steroid-footer-row">
+        <div className="steroid-footer-group">
+          <ShortcutHint keys="↑↓" label="navigate" />
+          <ShortcutHint keys="Enter" label="select" />
           {!commandMode && hasResults && (
-            <>
-              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Tab</kbd>
-              <span>command mode</span>
-            </>
+            <ShortcutHint keys="Tab" label="command mode" />
           )}
-          <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Esc</kbd>
-          <span>close</span>
+          <ShortcutHint keys="Esc" label="close" />
         </div>
 
         {commandMode && (
-          <div className="flex gap-4">
-            <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Ctrl+A</kbd>
-            <span>select all</span>
-            <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Ctrl+D</kbd>
-            <span>clear</span>
+          <div className="steroid-footer-group">
+            <ShortcutHint keys="Ctrl+A" label="select all" />
+            <ShortcutHint keys="Ctrl+D" label="clear" />
             {hasSelection && (
-              <>
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Shift+Enter</kbd>
-                <span>execute</span>
-              </>
+              <ShortcutHint keys="Shift+Enter" label="execute" />
             )}
           </div>
         )}

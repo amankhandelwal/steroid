@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class CreateTabGroupCommand extends BaseCommand {
   readonly id = 'group_tabs';
@@ -74,11 +75,12 @@ export class CreateTabGroupCommand extends BaseCommand {
 
     // Group name provided - create the group
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'CREATE_TAB_GROUP',
         tabIds: Array.from(context.selectedTabIds),
         groupName
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

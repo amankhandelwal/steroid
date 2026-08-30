@@ -1,0 +1,74 @@
+/**
+ * CommandPaletteHeader - command badge, query input and the selected-tab chips.
+ * Colours are token-driven; light/dark is handled entirely by src/index.css.
+ */
+
+.steroid-header {
+  @apply p-4;
+  border-bottom: 1px solid var(--steroid-border);
+}
+
+.steroid-header-row {
+  @apply flex items-center gap-3;
+}
+
+/* Pill showing the active command while in command mode. */
+.steroid-header-badge {
+  @apply px-3 py-1 rounded-full text-sm font-medium flex-shrink-0;
+  background-color: var(--steroid-accent-soft);
+  color: var(--steroid-accent);
+}
+
+.steroid-header-input {
+  @apply flex-1 text-lg min-w-0;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  color: var(--steroid-text);
+  font-family: inherit;
+}
+
+.steroid-header-input::placeholder {
+  color: var(--steroid-text-muted);
+  opacity: 1;
+}
+
+/* "N selected" counter. */
+.steroid-header-count {
+  @apply text-sm px-2 py-1 rounded flex-shrink-0;
+  background-color: var(--steroid-surface);
+  border: 1px solid var(--steroid-border);
+  color: var(--steroid-text-muted);
+}
+
+.steroid-header-selection {
+  @apply mt-3 pt-3;
+  border-top: 1px solid var(--steroid-border);
+}
+
+.steroid-header-selection-label {
+  @apply text-xs mb-2 font-medium;
+  color: var(--steroid-text-muted);
+}
+
+.steroid-header-chips {
+  @apply flex flex-wrap gap-2 max-h-20 overflow-y-auto;
+}
+
+/* One chip per selected tab. `max-w-48` is not part of Tailwind's default
+ * max-width scale, so the cap is expressed directly. */
+.steroid-header-chip {
+  @apply px-2 py-1 rounded-full text-xs flex items-center gap-2 min-w-0;
+  max-width: 12rem;
+  background-color: var(--steroid-selected);
+  border: 1px solid var(--steroid-selected-border);
+  color: var(--steroid-text);
+}
+
+.steroid-header-chip-favicon {
+  @apply w-3 h-3 flex-shrink-0;
+}
+
+.steroid-header-chip-title {
+  @apply truncate;
+}

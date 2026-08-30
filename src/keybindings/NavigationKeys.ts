@@ -26,7 +26,7 @@ export class NavigationKeys {
 
   private setupHandlers(): void {
     // Arrow Up - Move to previous item
-    const upHandler = KeybindingManager.createHandler('arrowup', (event) => {
+    const upHandler = KeybindingManager.createHandler('arrowup', () => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.totalItems > 0) {
         this.actions.moveUp();
@@ -35,7 +35,7 @@ export class NavigationKeys {
     });
 
     // Arrow Down - Move to next item
-    const downHandler = KeybindingManager.createHandler('arrowdown', (event) => {
+    const downHandler = KeybindingManager.createHandler('arrowdown', () => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.totalItems > 0) {
         this.actions.moveDown();
@@ -44,7 +44,7 @@ export class NavigationKeys {
     });
 
     // Home - Move to first item
-    const homeHandler = KeybindingManager.createHandler('home', (event) => {
+    const homeHandler = KeybindingManager.createHandler('home', () => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.totalItems > 0) {
         this.actions.moveToFirst();
@@ -53,7 +53,7 @@ export class NavigationKeys {
     });
 
     // End - Move to last item
-    const endHandler = KeybindingManager.createHandler('end', (event) => {
+    const endHandler = KeybindingManager.createHandler('end', () => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.totalItems > 0) {
         this.actions.moveToLast();
@@ -62,7 +62,7 @@ export class NavigationKeys {
     });
 
     // Page Up - Move up by page
-    const pageUpHandler = KeybindingManager.createHandler('pageup', (event) => {
+    const pageUpHandler = KeybindingManager.createHandler('pageup', () => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.totalItems > 0) {
         this.actions.pageUp();
@@ -71,7 +71,7 @@ export class NavigationKeys {
     });
 
     // Page Down - Move down by page
-    const pageDownHandler = KeybindingManager.createHandler('pagedown', (event) => {
+    const pageDownHandler = KeybindingManager.createHandler('pagedown', () => {
       const context = this.manager.getContext();
       if (context.isModalOpen && context.totalItems > 0) {
         this.actions.pageDown();

@@ -4,6 +4,8 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import searchEnginesConfig from '../config/searchEngines.json';
+import type { ExtensionMessage } from '../types/messages';
 
 interface SearchEngine {
   name: string;
@@ -11,16 +13,8 @@ interface SearchEngine {
   shortcut: string;
 }
 
-const SEARCH_ENGINES: SearchEngine[] = [
-  { name: 'Google', url: 'https://www.google.com/search?q=', shortcut: 'g' },
-  { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=', shortcut: 'ddg' },
-  { name: 'Bing', url: 'https://www.bing.com/search?q=', shortcut: 'b' },
-  { name: 'YouTube', url: 'https://www.youtube.com/results?search_query=', shortcut: 'yt' },
-  { name: 'GitHub', url: 'https://github.com/search?q=', shortcut: 'gh' },
-  { name: 'Stack Overflow', url: 'https://stackoverflow.com/search?q=', shortcut: 'so' },
-  { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Special:Search?search=', shortcut: 'wiki' },
-  { name: 'Reddit', url: 'https://www.reddit.com/search/?q=', shortcut: 'r' }
-];
+/** Search engines available for the `search` command, sourced from config. */
+const SEARCH_ENGINES: SearchEngine[] = searchEnginesConfig as SearchEngine[];
 
 export class SearchCommand extends BaseCommand {
   readonly id = 'search';
@@ -30,51 +24,54 @@ export class SearchCommand extends BaseCommand {
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
 
-  matches(query: string): boolean {
-    console.log(`SearchCommand.matches called with query: "${query}"`);
-    const result = super.matches(query);
-    console.log(`SearchCommand.matches result:`, result);
-    return result;
+  /**
+   * Build one action result per search engine for the given argument.
+   * Each action opens that engine's search URL for the argument.
+   */
+  private buildEngineResults(arg: string): SearchResultItem[] {
+    const trimmedArg = arg.trim();
+
+    return SEARCH_ENGINES.map(engine => ({
+      type: 'action' as const,
+      id: `search-engine-${engine.shortcut}`,
+      title: trimmedArg
+        ? `Search "${trimmedArg}" on ${engine.name}`
+        : `Search with ${engine.name}`,
+      action: () => {
+        const url = engine.url + encodeURIComponent(trimmedArg);
+        const message: ExtensionMessage = { type: 'OPEN_URL', url };
+        chrome.runtime.sendMessage(message);
+      }
+    }));
+  }
+
+  /**
+   * True only when the query is a genuine invocation of this command:
+   * exactly an alias, or an alias followed by a space (whole-token match).
+   * Prevents fanning out for queries that merely share a prefix (e.g. "settings").
+   */
+  private isInvocation(query: string): boolean {
+    const lowerQuery = query.toLowerCase().trim();
+    return this.aliases.some(alias => {
+      const lowerAlias = alias.toLowerCase();
+      return lowerQuery === lowerAlias || lowerQuery.startsWith(`${lowerAlias} `);
+    });
+  }
+
+  /**
+   * Suggestions shown in the default (non-command-mode) palette view:
+   * one row per engine so the user can pick where to search.
+   */
+  getSuggestions(query: string): SearchResultItem[] {
+    if (!this.isInvocation(query)) {
+      return [];
+    }
+
+    return this.buildEngineResults(this.extractArgument(query));
   }
 
   getSearchResults(context: CommandContext): SearchResultItem[] {
-    const argument = this.extractArgument(context.query);
-
-    if (!argument.trim()) {
-      // Show all search engines when no query is provided
-      return SEARCH_ENGINES.map(engine => ({
-        type: 'action' as const,
-        id: `search-${engine.shortcut}`,
-        title: `Search with ${engine.name}`,
-        action: () => {}
-      }));
-    }
-
-    // Show search engines filtered by query or show search suggestions
-    const lowerQuery = argument.toLowerCase();
-
-    // Filter search engines by name or shortcut
-    const filteredEngines = SEARCH_ENGINES.filter(engine =>
-      engine.name.toLowerCase().includes(lowerQuery) ||
-      engine.shortcut.toLowerCase().includes(lowerQuery)
-    );
-
-    if (filteredEngines.length > 0) {
-      return filteredEngines.map(engine => ({
-        type: 'action' as const,
-        id: `search-${engine.shortcut}-${argument}`,
-        title: `Search "${argument}" on ${engine.name}`,
-        action: () => {}
-      }));
-    }
-
-    // If no engine matches, show Google search as default
-    return [{
-      type: 'action' as const,
-      id: `search-google-${argument}`,
-      title: `Search "${argument}" on Google`,
-      action: () => {}
-    }];
+    return this.buildEngineResults(this.extractArgument(context.query));
   }
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
@@ -120,10 +117,11 @@ export class SearchCommand extends BaseCommand {
     context: CommandExecutionContext
   ): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'OPEN_URL',
         url
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, () => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

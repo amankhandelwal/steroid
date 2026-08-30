@@ -1,15 +1,28 @@
 /**
  * CommandPalette - Refactored version using new command system and hooks
+ *
+ * Styles live in the sibling `CommandPaletteNew.css`, which is pulled into the
+ * bundle by `src/index.css` (the single stylesheet injected into the
+ * extension's shadow root).
  */
 
 import { useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { commandRegistry } from '../commands';
+import type {
+  TabItem,
+  ActionItem,
+  CloseTabActionItem,
+  TabGroupItem,
+  SearchResultItem as SearchResultItemType
+} from '../commands/CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 import SearchResultItem from './SearchResultItem';
 import CommandPaletteHeader from './CommandPaletteHeader';
 import CommandPaletteFooter from './CommandPaletteFooter';
 import InputDialog from './InputDialog';
+import { AlertIcon, SearchIcon, SpinnerIcon } from './icons/Icons';
 
 interface CommandPaletteProps {
   onClose: () => void;
@@ -37,6 +50,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     setCommandMode,
     setActiveCommand,
     toggleTabSelection,
+    toggleGroupSelection,
     clearSelection,
     selectAll,
     fetchTabs,
@@ -53,7 +67,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   } = useCommandPalette(onClose);
 
   // Track previous searchResults to detect selection vs query changes
-  const previousSearchResultsRef = useRef<any[]>(searchResults);
+  const previousSearchResultsRef = useRef<SearchResultItemType[]>(searchResults);
 
   // Navigation handlers
   const handleMoveUp = useCallback(() => {
@@ -81,16 +95,17 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   }, [setActiveItemIndex, totalItems, activeItemIndex]);
 
   // Selection handlers - extracted by type
-  const handleTabItem = useCallback((item: any) => {
+  const handleTabItem = useCallback((item: TabItem) => {
     if (commandMode && currentCommand?.multiSelect) {
       toggleTabSelection(item.tab.id!);
     } else {
-      chrome.runtime.sendMessage({ type: 'SWITCH_TO_TAB', tabId: item.tab.id });
+      const message: ExtensionMessage = { type: 'SWITCH_TO_TAB', tabId: item.tab.id! };
+      chrome.runtime.sendMessage(message);
       onClose();
     }
   }, [commandMode, currentCommand, toggleTabSelection, onClose]);
 
-  const handleActionItem = useCallback((item: any) => {
+  const handleActionItem = useCallback((item: ActionItem) => {
     if (item.id.endsWith('-suggestion')) {
       const commandId = item.id.replace('-suggestion', '');
       const command = currentCommand || commandRegistry.getCommand(commandId);
@@ -110,16 +125,29 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     }
   }, [currentCommand, executeCommand, setCommandMode, setActiveCommand, setQuery, clearSelection]);
 
-  const handleCloseTabAction = useCallback((item: any) => {
-    chrome.runtime.sendMessage({ type: 'CLOSE_TAB', tabId: item.tab.id });
+  const handleCloseTabAction = useCallback((item: CloseTabActionItem) => {
+    const message: ExtensionMessage = { type: 'CLOSE_TAB', tabId: item.tab.id! };
+    chrome.runtime.sendMessage(message);
     onClose();
   }, [onClose]);
 
-  const handleTabGroupItem = useCallback((item: any) => {
+  const handleTabGroupItem = useCallback((item: TabGroupItem) => {
     if (commandMode && currentCommand?.id === 'delete_group') {
       executeCommand(currentCommand.id, undefined, item.group.id);
+    } else if (commandMode && currentCommand?.multiSelect) {
+      // Bulk-select commands (e.g. Close Tabs): toggle every member tab of
+      // this group in/out of the selection as one unit.
+      toggleGroupSelection(item.group.id);
+    } else if (!commandMode) {
+      // Outside command mode, selecting a group switches to its first tab.
+      const firstTab = tabs.find(tab => tab.groupId === item.group.id);
+      if (firstTab) {
+        const message: ExtensionMessage = { type: 'SWITCH_TO_TAB', tabId: firstTab.id! };
+        chrome.runtime.sendMessage(message);
+        onClose();
+      }
     }
-  }, [commandMode, currentCommand, executeCommand]);
+  }, [commandMode, currentCommand, executeCommand, toggleGroupSelection, tabs, onClose]);
 
   const handleExecuteSelected = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
@@ -144,14 +172,45 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     toggleTabSelection(tabId);
   }, [toggleTabSelection]);
 
+  const handleToggleGroupSelectionById = useCallback((groupId: number) => {
+    toggleGroupSelection(groupId);
+  }, [toggleGroupSelection]);
+
+  /** A tab-group row is "selected" when every one of its current member tabs is selected. */
+  const isTabGroupFullySelected = useCallback((groupId: number) => {
+    const memberTabIds = tabs.filter(tab => tab.groupId === groupId).map(tab => tab.id!);
+    return memberTabIds.length > 0 && memberTabIds.every(id => selectedTabIds.has(id));
+  }, [tabs, selectedTabIds]);
+
   const handleEnterCommandMode = useCallback(() => {
-    if (currentCommand && currentCommand.mode === 'CommandMode') {
-      setCommandMode(true);
-      setActiveCommand(currentCommand.id);
-      setQuery(''); // Clear input for command mode search
-      clearSelection(); // Clear any existing selection
+    const activeItem = searchResults[activeItemIndex];
+
+    // If the highlighted row is a CommandMode command's suggestion, enter
+    // command mode for it. Resolve the command from the highlighted row
+    // itself (same lookup `handleActionItem` uses) rather than from
+    // `currentCommand`/`activeCommand` state — that state only becomes
+    // non-null once command mode has already been entered, so checking it
+    // here could never fire from a fresh, non-command-mode highlight.
+    if (activeItem?.type === 'action' && activeItem.id.endsWith('-suggestion')) {
+      const commandId = activeItem.id.replace('-suggestion', '');
+      const command = commandRegistry.getCommand(commandId);
+      if (command?.mode === 'CommandMode') {
+        setCommandMode(true);
+        setActiveCommand(command.id);
+        setQuery(''); // Clear input for command mode search
+        clearSelection(); // Clear any existing selection
+        return;
+      }
     }
-  }, [currentCommand, setCommandMode, setActiveCommand, setQuery, clearSelection]);
+
+    // Tab autocomplete (FIND-026): nothing to enter command mode for. If a
+    // plain tab result is highlighted instead, populate the input with its
+    // title (falling back to its URL) without switching to it or closing
+    // the palette.
+    if (activeItem?.type === 'tab') {
+      setQuery(activeItem.tab.title || activeItem.tab.url || '');
+    }
+  }, [searchResults, activeItemIndex, setCommandMode, setActiveCommand, setQuery, clearSelection]);
 
   const handleExitCommandMode = useCallback(() => {
     setCommandMode(false);
@@ -167,10 +226,11 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const handleCloseHighlightedTab = useCallback(() => {
     const activeItem = searchResults[activeItemIndex];
     if (activeItem?.type === 'tab') {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'CLOSE_TAB',
-        tabId: activeItem.tab.id
-      }, () => {
+        tabId: activeItem.tab.id!
+      };
+      chrome.runtime.sendMessage(message, () => {
         // Refresh after tab is actually closed
         fetchTabs();
       });
@@ -227,38 +287,27 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
     previousSearchResultsRef.current = searchResults;
   }, [searchResults, setActiveItemIndex]);
 
-  // Scroll active item into view
+  // Scroll active item into view.
+  // Delegates to the browser's native scroll-into-view against the true
+  // scrollable ancestor. `block: 'nearest'` only scrolls when the row is
+  // actually out of view, avoiding the offsetParent bugs of hand-rolled math
+  // (the scroll container is not positioned, so item.offsetTop was measured
+  // against the fixed backdrop).
   useEffect(() => {
-    if (resultsContainerRef.current) {
-      const container = resultsContainerRef.current;
-      const activeElement = container.querySelector(`[data-item-index="${activeItemIndex}"]`) as HTMLElement;
+    const container = resultsContainerRef.current;
+    if (!container) return;
 
-      if (activeElement) {
-        const containerHeight = container.clientHeight;
-        const scrollTop = container.scrollTop;
-        const elementTop = activeElement.offsetTop;
-        const elementHeight = activeElement.offsetHeight;
+    const activeElement = container.querySelector(
+      `[data-item-index="${activeItemIndex}"]`
+    ) as HTMLElement | null;
 
-        // Check if element is visible
-        const elementBottom = elementTop + elementHeight;
-        const visibleTop = scrollTop;
-        const visibleBottom = scrollTop + containerHeight;
-
-        if (elementTop < visibleTop) {
-          // Element is above visible area - scroll up
-          container.scrollTop = elementTop;
-        } else if (elementBottom > visibleBottom) {
-          // Element is below visible area - scroll down
-          container.scrollTop = elementBottom - containerHeight;
-        }
-      }
-    }
+    activeElement?.scrollIntoView({ block: 'nearest' });
   }, [activeItemIndex]);
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+    <div className="steroid-palette-backdrop">
+      <div className="steroid-palette-card">
         <CommandPaletteHeader
           ref={inputRef}
           query={query}
@@ -275,20 +324,27 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
               favIconUrl: tab.favIconUrl
             } : null;
           }).filter(Boolean) as any[]}
-          onRemoveSelection={toggleTabSelection}
         />
 
         {/* Results */}
-        <div ref={resultsContainerRef} className="flex-1 overflow-y-auto">
+        <div
+          ref={resultsContainerRef}
+          className="steroid-palette-results"
+          role="listbox"
+          aria-label="Search results"
+          aria-activedescendant={
+            searchResults.length > 0 ? `steroid-result-${activeItemIndex}` : undefined
+          }
+        >
           {errorMessage ? (
-            <div className="p-8 text-center text-red-500">
-              <div className="text-red-400 text-4xl mb-2">!</div>
-              <div className="font-medium">Error</div>
-              <div className="text-sm mt-1">{errorMessage}</div>
+            <div className="steroid-palette-state steroid-palette-state--error">
+              <AlertIcon className="steroid-palette-state-icon" />
+              <div className="steroid-palette-state-title">Error</div>
+              <div className="steroid-palette-state-hint">{errorMessage}</div>
             </div>
           ) : loadingMessage ? (
-            <div className="p-8 text-center text-gray-500">
-              <div className="text-gray-400 text-4xl mb-2 animate-pulse">🤖</div>
+            <div className="steroid-palette-state">
+              <SpinnerIcon className="steroid-palette-state-icon animate-spin" />
               <div>{loadingMessage}</div>
             </div>
           ) : searchResults.length > 0 ? (
@@ -298,7 +354,11 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
                 item={item}
                 index={index}
                 isActive={index === activeItemIndex}
-                isSelected={item.type === 'tab' && selectedTabIds.has(item.tab.id!)}
+                isSelected={
+                  item.type === 'tab' ? selectedTabIds.has(item.tab.id!) :
+                  item.type === 'tabGroup' ? isTabGroupFullySelected(item.group.id) :
+                  false
+                }
                 commandMode={commandMode}
                 multiSelect={currentCommand?.multiSelect || false}
                 onSelect={(index) => {
@@ -306,13 +366,14 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
                   handleExecuteSelected();
                 }}
                 onToggleSelection={handleToggleSelectionById}
+                onToggleGroupSelection={handleToggleGroupSelectionById}
               />
             ))
           ) : (
-            <div className="p-8 text-center text-gray-500">
-              <div className="text-gray-400 text-4xl mb-2">🔍</div>
-              <div>No results found</div>
-              <div className="text-sm mt-1">Try a different search term</div>
+            <div className="steroid-palette-state">
+              <SearchIcon className="steroid-palette-state-icon" />
+              <div className="steroid-palette-state-title">No results found</div>
+              <div className="steroid-palette-state-hint">Try a different search term</div>
             </div>
           )}
         </div>

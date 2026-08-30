@@ -2,11 +2,13 @@
  * Error Handling Utilities
  */
 
+import type { ExtensionMessage } from '../types/messages';
+
 export class ExtensionError extends Error {
   constructor(
     message: string,
     public code: string,
-    public context?: any
+    public context?: unknown
   ) {
     super(message);
     this.name = 'ExtensionError';
@@ -46,7 +48,7 @@ export async function safeAsync<T>(
  * Chrome runtime message sender with error handling
  */
 export function sendMessageSafely<T = any>(
-  message: any,
+  message: ExtensionMessage,
   context?: string
 ): Promise<T | null> {
   return new Promise((resolve) => {

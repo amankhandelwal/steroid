@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class SetApiKeyCommand extends BaseCommand {
   readonly id = 'set_api_key';
@@ -12,9 +13,6 @@ export class SetApiKeyCommand extends BaseCommand {
   readonly description = 'Set your OpenAI API key for smart tab grouping';
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
-
-  /** Tracks whether the input dialog has been shown */
-  private awaitingKey = false;
 
   getSearchResults(_context: CommandContext): SearchResultItem[] {
     return [{
@@ -25,10 +23,18 @@ export class SetApiKeyCommand extends BaseCommand {
     }];
   }
 
+  /**
+   * Stateless, following `CreateTabGroupCommand`'s pattern: `extractArgument`
+   * strips this command's alias from the first invocation's query (leaving
+   * `""`), so an empty argument means "no key yet" and requests input. The
+   * second invocation is driven by the input dialog's submission, whose
+   * value doesn't start with any alias, so `extractArgument` returns it
+   * unchanged and it's treated as the key to save.
+   */
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
-    // First call: always show input dialog regardless of query content
-    if (!this.awaitingKey) {
-      this.awaitingKey = true;
+    const apiKey = this.extractArgument(context.query).trim();
+
+    if (!apiKey) {
       return {
         success: true,
         needsInput: true,
@@ -42,20 +48,13 @@ export class SetApiKeyCommand extends BaseCommand {
       };
     }
 
-    // Second call: context.query is the API key from the input dialog
-    this.awaitingKey = false;
-    const apiKey = context.query.trim();
-
-    if (!apiKey) {
-      return { success: false, error: 'API key cannot be empty' };
-    }
-
     // Validate and store the key
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'SET_API_KEY',
         apiKey
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

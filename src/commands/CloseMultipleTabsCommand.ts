@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class CloseMultipleTabsCommand extends BaseCommand {
   readonly id = 'close_multiple';
@@ -15,25 +16,38 @@ export class CloseMultipleTabsCommand extends BaseCommand {
 
   getSearchResults(context: CommandContext): SearchResultItem[] {
     const argument = this.extractArgument(context.query);
-
-    if (!argument.trim()) {
-      // Show all tabs for selection
-      return context.tabs.map(tab => ({
-        type: 'tab' as const,
-        tab
-      }));
-    }
-
-    // Filter tabs based on search query
     const lowerQuery = argument.toLowerCase();
-    return context.tabs
-      .filter(tab =>
-        tab.title?.toLowerCase().includes(lowerQuery) ||
-        tab.url?.toLowerCase().includes(lowerQuery)
-      )
-      .map(tab => ({
-        type: 'tab' as const,
-        tab
+
+    const tabItems: SearchResultItem[] = (
+      argument.trim()
+        ? context.tabs.filter(tab =>
+            tab.title?.toLowerCase().includes(lowerQuery) ||
+            tab.url?.toLowerCase().includes(lowerQuery)
+          )
+        : context.tabs
+    ).map(tab => ({
+      type: 'tab' as const,
+      tab
+    }));
+
+    const groupItems: SearchResultItem[] = this.getMatchingGroups(context.tabGroups, lowerQuery);
+
+    return [...groupItems, ...tabItems];
+  }
+
+  /**
+   * Tab groups whose title matches the query. Groups already fully selected
+   * (every member tab id already in selectedTabIds) are excluded by the
+   * generic post-filter in useCommandPalette.ts, not here.
+   */
+  private getMatchingGroups(tabGroups: chrome.tabGroups.TabGroup[], lowerQuery: string): SearchResultItem[] {
+    return tabGroups
+      .filter(group => !lowerQuery.trim() || (group.title && group.title.toLowerCase().includes(lowerQuery)))
+      .map(group => ({
+        type: 'tabGroup' as const,
+        group,
+        title: group.title || `Group ${group.id}`,
+        id: `group-${group.id}`
       }));
   }
 
@@ -46,10 +60,11 @@ export class CloseMultipleTabsCommand extends BaseCommand {
     }
 
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'CLOSE_TAB',
         tabIds: Array.from(context.selectedTabIds)
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, (_response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

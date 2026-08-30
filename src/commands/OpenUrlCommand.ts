@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class OpenUrlCommand extends BaseCommand {
   readonly id = 'url';
@@ -98,10 +99,11 @@ export class OpenUrlCommand extends BaseCommand {
     const normalizedUrl = this.normalizeUrl(argument);
 
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'OPEN_URL',
         url: normalizedUrl
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, (_response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

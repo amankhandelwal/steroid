@@ -4,11 +4,12 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class UngroupAllCommand extends BaseCommand {
   readonly id = 'ungroup_all';
   readonly name = 'Ungroup All Tabs';
-  readonly aliases = ['ungroup', 'remove groups', 'ungroup all', 'remove all groups', 'disband'];
+  readonly aliases = ['ungroup all', 'remove groups', 'remove all groups', 'disband'];
   readonly description = 'Remove all tab groups across all windows';
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
@@ -25,7 +26,8 @@ export class UngroupAllCommand extends BaseCommand {
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'UNGROUP_ALL_TABS' }, (response) => {
+      const message: ExtensionMessage = { type: 'UNGROUP_ALL_TABS' };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

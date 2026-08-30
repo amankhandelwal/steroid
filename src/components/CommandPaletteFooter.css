@@ -1,0 +1,34 @@
+/**
+ * CommandPaletteFooter - keyboard hint bar. The <kbd> chips are monospaced so
+ * key names keep a consistent width against the surrounding sans-serif labels.
+ */
+
+.steroid-footer {
+  @apply p-3 text-xs;
+  border-top: 1px solid var(--steroid-border);
+  background-color: var(--steroid-surface);
+  color: var(--steroid-text-muted);
+}
+
+.steroid-footer-row {
+  @apply flex justify-between items-center gap-4;
+}
+
+.steroid-footer-group {
+  @apply flex items-center flex-wrap gap-x-2 gap-y-1;
+}
+
+/* Spacing between one hint pair and the next. */
+.steroid-footer-hint {
+  @apply flex items-center gap-1.5 mr-2;
+}
+
+.steroid-footer-kbd {
+  @apply px-1.5 py-0.5 rounded font-mono;
+  background-color: var(--steroid-bg);
+  border: 1px solid var(--steroid-border);
+  color: var(--steroid-text);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  white-space: nowrap;
+}

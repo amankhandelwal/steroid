@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class CloseCurrentTabCommand extends BaseCommand {
   readonly id = 'close_current';
@@ -13,7 +14,7 @@ export class CloseCurrentTabCommand extends BaseCommand {
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
 
-  getSearchResults(context: CommandContext): SearchResultItem[] {
+  getSearchResults(_context: CommandContext): SearchResultItem[] {
     // Always show the suggestion to close current tab
     return [{
       type: 'action',
@@ -30,9 +31,10 @@ export class CloseCurrentTabCommand extends BaseCommand {
 
     return new Promise((resolve) => {
       // Close current tab - send message to background script
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'CLOSE_CURRENT_TAB'
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,
@@ -58,7 +60,7 @@ export class CloseCurrentTabCommand extends BaseCommand {
     });
   }
 
-  getDisplayTitle(query: string): string {
+  getDisplayTitle(_query: string): string {
     return 'Close current tab';
   }
 }

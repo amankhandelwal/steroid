@@ -20,10 +20,12 @@ export abstract class BaseCommand {
    */
   matches(query: string): boolean {
     const lowerQuery = query.toLowerCase().trim();
-    return this.aliases.some(alias =>
-      lowerQuery.startsWith(alias.toLowerCase()) ||
-      alias.toLowerCase().includes(lowerQuery)
-    );
+    return this.aliases.some(alias => {
+      const lowerAlias = alias.toLowerCase();
+      // Prefix match either direction: the user is still typing an alias,
+      // or has typed the full alias plus an argument.
+      return lowerAlias.startsWith(lowerQuery) || lowerQuery.startsWith(lowerAlias);
+    });
   }
 
   /**
@@ -55,7 +57,7 @@ export abstract class BaseCommand {
   /**
    * Check if the command can execute with current context
    */
-  canExecute(context: CommandContext): boolean {
+  canExecute(_context: CommandContext): boolean {
     return true;
   }
 
@@ -71,9 +73,10 @@ export abstract class BaseCommand {
   }
 
   /**
-   * Get command suggestions based on query
+   * Get command suggestions based on query. `context` is optional so that
+   * subclasses (e.g. SearchCommand) may override with a single-arg signature.
    */
-  getSuggestions(query: string): SearchResultItem[] {
+  getSuggestions(query: string, _context?: CommandContext): SearchResultItem[] {
     if (!this.matches(query)) {
       return [];
     }

@@ -7,19 +7,12 @@ import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecu
 
 export class CommandRegistry {
   private commands: Map<string, BaseCommand> = new Map();
-  private commandsByAlias: Map<string, BaseCommand> = new Map();
 
   /**
    * Register a command
    */
   register(command: BaseCommand): void {
     this.commands.set(command.id, command);
-
-    // Register all aliases
-    command.aliases.forEach(alias => {
-      this.commandsByAlias.set(alias.toLowerCase(), command);
-    });
-
   }
 
   /**
@@ -30,36 +23,6 @@ export class CommandRegistry {
   }
 
   /**
-   * Find command by query
-   */
-  findCommand(query: string): BaseCommand | null {
-    const lowerQuery = query.toLowerCase().trim();
-
-    // First try exact alias matches (query equals alias exactly)
-    for (const [alias, command] of this.commandsByAlias) {
-      if (lowerQuery === alias) {
-        return command;
-      }
-    }
-
-    // Then try prefix matches (query starts with alias)
-    for (const [alias, command] of this.commandsByAlias) {
-      if (lowerQuery.startsWith(alias)) {
-        return command;
-      }
-    }
-
-    // Finally try partial matches using command.matches()
-    for (const command of this.commands.values()) {
-      if (command.matches(query)) {
-        return command;
-      }
-    }
-
-    return null;
-  }
-
-  /**
    * Get all commands
    */
   getAllCommands(): BaseCommand[] {
@@ -67,9 +30,10 @@ export class CommandRegistry {
   }
 
   /**
-   * Get command suggestions for a query
+   * Get command suggestions for a query. `context` is forwarded to each
+   * command so suggestions can reflect live state (e.g. the previous tab's title).
    */
-  getCommandSuggestions(query: string): SearchResultItem[] {
+  getCommandSuggestions(query: string, context: CommandContext): SearchResultItem[] {
     if (!query.trim()) {
       return [];
     }
@@ -77,7 +41,7 @@ export class CommandRegistry {
     const suggestions: SearchResultItem[] = [];
 
     for (const command of this.commands.values()) {
-      const commandSuggestions = command.getSuggestions(query);
+      const commandSuggestions = command.getSuggestions(query, context);
       suggestions.push(...commandSuggestions);
     }
 
@@ -109,31 +73,6 @@ export class CommandRegistry {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
-  }
-
-  /**
-   * Get search results for a specific command
-   */
-  getCommandSearchResults(commandId: string, context: CommandContext): SearchResultItem[] {
-    const command = this.commands.get(commandId);
-    if (!command) {
-      return [];
-    }
-
-    return command.getSearchResults(context);
-  }
-
-  /**
-   * Parse query and return command with extracted argument
-   */
-  parseQuery(query: string): { command: BaseCommand | null; argument: string } {
-    const command = this.findCommand(query);
-    if (!command) {
-      return { command: null, argument: query };
-    }
-
-    const argument = command.extractArgument(query);
-    return { command, argument };
   }
 }
 

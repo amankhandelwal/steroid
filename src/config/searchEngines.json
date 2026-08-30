@@ -1,14 +1,10 @@
 [
-  {
-    "id": "google",
-    "prefix": ["g", "google"],
-    "name": "Google Search",
-    "url": "https://www.google.com/search?q=%s"
-  },
-  {
-    "id": "youtube",
-    "prefix": ["y", "youtube"],
-    "name": "YouTube Search",
-    "url": "https://www.youtube.com/results?search_query=%s"
-  }
+  { "name": "Google", "url": "https://www.google.com/search?q=", "shortcut": "g" },
+  { "name": "DuckDuckGo", "url": "https://duckduckgo.com/?q=", "shortcut": "ddg" },
+  { "name": "Bing", "url": "https://www.bing.com/search?q=", "shortcut": "b" },
+  { "name": "YouTube", "url": "https://www.youtube.com/results?search_query=", "shortcut": "yt" },
+  { "name": "GitHub", "url": "https://github.com/search?q=", "shortcut": "gh" },
+  { "name": "Stack Overflow", "url": "https://stackoverflow.com/search?q=", "shortcut": "so" },
+  { "name": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Special:Search?search=", "shortcut": "wiki" },
+  { "name": "Reddit", "url": "https://www.reddit.com/search/?q=", "shortcut": "r" }
 ]

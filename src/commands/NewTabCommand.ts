@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class NewTabCommand extends BaseCommand {
   readonly id = 'new_tab';
@@ -13,7 +14,7 @@ export class NewTabCommand extends BaseCommand {
   readonly mode = 'SingleExecution' as const;
   readonly multiSelect = false;
 
-  getSearchResults(context: CommandContext): SearchResultItem[] {
+  getSearchResults(_context: CommandContext): SearchResultItem[] {
     // For SingleExecution commands, show an execution option
     return [{
       type: 'action' as const,
@@ -27,7 +28,8 @@ export class NewTabCommand extends BaseCommand {
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'NEW_TAB' }, (response) => {
+      const message: ExtensionMessage = { type: 'NEW_TAB' };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,
@@ -53,7 +55,7 @@ export class NewTabCommand extends BaseCommand {
     });
   }
 
-  getDisplayTitle(query: string): string {
+  getDisplayTitle(_query: string): string {
     return 'New Tab';
   }
 }

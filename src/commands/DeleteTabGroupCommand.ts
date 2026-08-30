@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class DeleteTabGroupCommand extends BaseCommand {
   readonly id = 'delete_group';
@@ -73,10 +74,11 @@ export class DeleteTabGroupCommand extends BaseCommand {
     }
 
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
+      const message: ExtensionMessage = {
         type: 'DELETE_TAB_GROUP',
         groupId: groupToDelete!.id
-      }, (response) => {
+      };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,

@@ -1,0 +1,84 @@
+/**
+ * SearchResultItem - one result row (tab, action, close-tab action or group).
+ *
+ * Row state is expressed with modifier classes rather than swapped utility
+ * strings. `--active` (keyboard highlight) and `--selected` (multi-select) are
+ * written with a doubled class selector so they tie with `:hover` on
+ * specificity and win on source order; `--selected` is declared last so it
+ * takes precedence over `--active`, matching the previous behaviour.
+ */
+
+.steroid-result-row {
+  @apply p-3 cursor-pointer transition-all duration-150;
+  border-left: 4px solid transparent;
+  color: var(--steroid-text);
+}
+
+.steroid-result-row:hover {
+  background-color: var(--steroid-surface);
+}
+
+.steroid-result-row.steroid-result-row--active {
+  background-color: var(--steroid-accent-soft);
+  border-left-color: var(--steroid-accent);
+  box-shadow: 0 1px 2px var(--steroid-shadow);
+}
+
+.steroid-result-row.steroid-result-row--selected {
+  background-color: var(--steroid-selected);
+  border-left-color: var(--steroid-selected-border);
+}
+
+.steroid-result-content {
+  @apply flex items-center gap-3;
+}
+
+.steroid-result-checkbox {
+  @apply w-4 h-4 flex-shrink-0 rounded cursor-pointer;
+  accent-color: var(--steroid-accent);
+}
+
+.steroid-result-favicon {
+  @apply w-4 h-4 flex-shrink-0;
+}
+
+.steroid-result-text {
+  @apply min-w-0 flex-1;
+}
+
+.steroid-result-title {
+  @apply font-medium truncate;
+  color: var(--steroid-text);
+}
+
+/* Tab URLs are monospaced so hostnames and paths line up while scanning. */
+.steroid-result-url {
+  @apply text-sm truncate font-mono;
+  color: var(--steroid-text-muted);
+}
+
+.steroid-result-subtitle {
+  @apply text-sm truncate;
+  color: var(--steroid-text-muted);
+}
+
+/* Trailing status markers (audible, pinned, close). */
+.steroid-result-marker {
+  @apply flex items-center flex-shrink-0;
+}
+
+.steroid-result-icon {
+  @apply w-4 h-4 flex-shrink-0;
+}
+
+.steroid-result-icon--accent {
+  color: var(--steroid-accent);
+}
+
+.steroid-result-icon--muted {
+  color: var(--steroid-text-muted);
+}
+
+.steroid-result-icon--danger {
+  color: var(--steroid-danger);
+}

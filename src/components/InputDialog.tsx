@@ -1,5 +1,9 @@
 /**
  * InputDialog - Modal input dialog for collecting user input
+ *
+ * Styles live in the sibling `InputDialog.css`, which is pulled into the bundle
+ * by `src/index.css` (the single stylesheet injected into the extension's
+ * shadow root).
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -54,10 +58,15 @@ const InputDialog = ({
     }
   };
 
+  // Secrets (API keys) render monospaced so individual characters stay legible.
+  const inputClassName = inputType === 'password'
+    ? 'steroid-dialog-input steroid-dialog-input--mono'
+    : 'steroid-dialog-input';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[10000]">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">{title}</h3>
+    <div className="steroid-dialog-backdrop" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="steroid-dialog-card">
+        <h3 className="steroid-dialog-title">{title}</h3>
 
         <form onSubmit={handleSubmit}>
           <input
@@ -67,21 +76,22 @@ const InputDialog = ({
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            aria-label={title}
+            className={inputClassName}
           />
 
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="steroid-dialog-actions">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+              className="steroid-dialog-button steroid-dialog-button--secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!value.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="steroid-dialog-button steroid-dialog-button--primary"
             >
               {submitLabel}
             </button>

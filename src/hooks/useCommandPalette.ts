@@ -3,9 +3,12 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import Fuse from 'fuse.js';
 import { commandRegistry, initializeCommands } from '../commands';
-import type { CommandContext, SearchResultItem, CommandExecutionContext } from '../commands/CommandTypes';
+import type { BaseCommand } from '../commands';
+import type { CommandContext, PreviousTabInfo, SearchResultItem, CommandExecutionContext } from '../commands/CommandTypes';
 import { sendMessageSafely, debounce } from '../utils/errorHandling';
+import type { ExtensionMessage } from '../types/messages';
 
 export interface UseCommandPaletteReturn {
   // State
@@ -30,16 +33,17 @@ export interface UseCommandPaletteReturn {
 
   // Actions
   setQuery: (query: string) => void;
-  setActiveItemIndex: (index: number) => void;
+  setActiveItemIndex: (index: number | ((prev: number) => number)) => void;
   setCommandMode: (mode: boolean) => void;
   setActiveCommand: (command: string | null) => void;
   setSelectedTabIds: (ids: Set<number>) => void;
   toggleTabSelection: (tabId: number) => void;
+  toggleGroupSelection: (groupId: number) => void;
   clearSelection: () => void;
   selectAll: () => void;
   fetchTabs: () => void;
   fetchTabGroups: () => void;
-  executeCommand: (commandId: string) => Promise<void>;
+  executeCommand: (commandId: string, inputValue?: string, selectedGroupId?: number) => Promise<void>;
   executeCurrentCommand: () => Promise<void>;
   handleInputSubmit: (value: string) => void;
   handleInputCancel: () => void;
@@ -48,7 +52,7 @@ export interface UseCommandPaletteReturn {
   // Computed
   totalItems: number;
   hasSelection: boolean;
-  currentCommand: any; // BaseCommand | null
+  currentCommand: BaseCommand | null;
 }
 
 export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn {
@@ -77,6 +81,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
   } | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [previousTab, setPreviousTab] = useState<PreviousTabInfo | null>(null);
 
   // Debounced query setter for performance
   const debouncedSetQuery = useMemo(
@@ -92,7 +97,8 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   // Fetch tabs
   const fetchTabs = useCallback(async () => {
-    const response = await sendMessageSafely({ type: 'GET_TABS' }, 'fetchTabs');
+    const message: ExtensionMessage = { type: 'GET_TABS' };
+    const response = await sendMessageSafely(message, 'fetchTabs');
     if (response) {
       setTabs(response);
     }
@@ -100,9 +106,30 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
 
   // Fetch tab groups
   const fetchTabGroups = useCallback(async () => {
-    const response = await sendMessageSafely({ type: 'GET_TAB_GROUPS' }, 'fetchTabGroups');
+    const message: ExtensionMessage = { type: 'GET_TAB_GROUPS' };
+    const response = await sendMessageSafely(message, 'fetchTabGroups');
     if (response) {
       setTabGroups(response);
+    }
+  }, []);
+
+  // Fetch the previous tab's info (for the "Previous Tab" suggestion title).
+  // A failed lookup (no history yet) resolves to null rather than throwing.
+  const fetchPreviousTab = useCallback(async () => {
+    const message: ExtensionMessage = { type: 'GET_PREVIOUS_TAB' };
+    const response = await sendMessageSafely<{ success: boolean; tab?: chrome.tabs.Tab }>(
+      message,
+      'fetchPreviousTab'
+    );
+
+    if (response?.success && response.tab) {
+      setPreviousTab({
+        tabId: response.tab.id!,
+        title: response.tab.title || 'Untitled',
+        url: response.tab.url
+      });
+    } else {
+      setPreviousTab(null);
     }
   }, []);
 
@@ -110,15 +137,27 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
   useEffect(() => {
     fetchTabs();
     fetchTabGroups();
-  }, [fetchTabs, fetchTabGroups]);
+    fetchPreviousTab();
+  }, [fetchTabs, fetchTabGroups, fetchPreviousTab]);
 
   // Get current command (only when explicitly set, not from query parsing)
   const currentCommand = useMemo(() => {
     if (activeCommand) {
-      return commandRegistry.getCommand(activeCommand);
+      return commandRegistry.getCommand(activeCommand) ?? null;
     }
     return null;
   }, [activeCommand]);
+
+  // Fuzzy matcher over open tabs. Rebuilt only when the tab list changes,
+  // never per keystroke.
+  const tabFuse = useMemo(
+    () => new Fuse(tabs, {
+      keys: ['title', 'url'],
+      threshold: 0.35,
+      ignoreLocation: true
+    }),
+    [tabs]
+  );
 
   // Generate search results
   const searchResults = useMemo(() => {
@@ -129,18 +168,28 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       selectedTabIds,
       query: queryState,
       commandMode,
-      activeCommand
+      activeCommand,
+      previousTab
     };
 
     if (currentCommand && commandMode) {
       // Only use single command mode when explicitly in command mode
       let results = currentCommand.getSearchResults(context);
 
-      // In command mode, filter out already selected tabs
+      // In command mode, filter out already-selected tabs and fully-selected
+      // tab groups (every one of the group's member tabs is already selected).
       if (selectedTabIds.size > 0) {
         results = results.filter(item => {
           if (item.type === 'tab') {
             return !selectedTabIds.has(item.tab.id!);
+          }
+          if (item.type === 'tabGroup') {
+            const memberTabIds = tabs
+              .filter(tab => tab.groupId === item.group.id)
+              .map(tab => tab.id!);
+            const fullySelected = memberTabIds.length > 0 &&
+              memberTabIds.every(id => selectedTabIds.has(id));
+            return !fullySelected;
           }
           return true;
         });
@@ -160,19 +209,27 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     }
 
     // Show command suggestions
-    const suggestions = commandRegistry.getCommandSuggestions(queryState);
+    const suggestions = commandRegistry.getCommandSuggestions(queryState, context);
 
-    // Also show matching tabs
-    const lowerQuery = queryState.toLowerCase();
-    const matchingTabs = tabs
-      .filter(tab =>
-        tab.title?.toLowerCase().includes(lowerQuery) ||
-        tab.url?.toLowerCase().includes(lowerQuery)
-      )
+    // Also show fuzzily-matching tabs (tolerates typos / transposed letters)
+    const matchingTabs = tabFuse
+      .search(queryState)
+      .map(result => result.item)
       .slice(0, 30)
       .map(tab => ({
         type: 'tab' as const,
         tab
+      }));
+
+    // Also show tab groups whose title matches the query
+    const lowerQuery = queryState.toLowerCase();
+    const matchingTabGroups = tabGroups
+      .filter(group => group.title && group.title.toLowerCase().includes(lowerQuery))
+      .map(group => ({
+        type: 'tabGroup' as const,
+        group,
+        title: group.title || `Group ${group.id}`,
+        id: `group-${group.id}`
       }));
 
     // Add fallback Google search option if no commands match
@@ -182,13 +239,14 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       title: `Search "${queryState}" on Google`,
       action: () => {
         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(queryState)}`;
-        chrome.runtime.sendMessage({ type: 'OPEN_URL', url: searchUrl });
+        const message: ExtensionMessage = { type: 'OPEN_URL', url: searchUrl };
+        chrome.runtime.sendMessage(message);
       }
     }] : [];
 
-    const finalResults = [...suggestions, ...matchingTabs, ...fallbackSearch];
+    const finalResults = [...suggestions, ...matchingTabGroups, ...matchingTabs, ...fallbackSearch];
     return finalResults;
-  }, [tabs, tabGroups, selectedTabIds, queryState, commandMode, activeCommand, currentCommand]);
+  }, [tabs, tabGroups, selectedTabIds, queryState, commandMode, activeCommand, currentCommand, tabFuse, previousTab]);
 
   // Selection management
   const toggleTabSelection = useCallback((tabId: number) => {
@@ -202,6 +260,28 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
       return newSet;
     });
   }, []);
+
+  // Toggle selection for an entire tab group: resolves to its current member
+  // tab IDs and adds/removes all of them from selectedTabIds in one step.
+  // A partially-selected group is treated as "not fully selected" and gets
+  // filled in to fully-selected rather than toggled off.
+  const toggleGroupSelection = useCallback((groupId: number) => {
+    const memberTabIds = tabs
+      .filter(tab => tab.groupId === groupId)
+      .map(tab => tab.id!)
+      .filter(id => id !== undefined);
+
+    setSelectedTabIds(prev => {
+      const allSelected = memberTabIds.every(id => prev.has(id));
+      const newSet = new Set(prev);
+      if (allSelected) {
+        memberTabIds.forEach(id => newSet.delete(id));
+      } else {
+        memberTabIds.forEach(id => newSet.add(id));
+      }
+      return newSet;
+    });
+  }, [tabs]);
 
   const clearSelection = useCallback(() => {
     setSelectedTabIds(new Set());
@@ -367,6 +447,7 @@ export function useCommandPalette(onClose: () => void): UseCommandPaletteReturn 
     setActiveCommand,
     setSelectedTabIds,
     toggleTabSelection,
+    toggleGroupSelection,
     clearSelection,
     selectAll,
     fetchTabs,

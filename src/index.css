@@ -1,3 +1,87 @@
+/* ---------------------------------------------------------------------------
+ * Steroid — global stylesheet.
+ *
+ * This file is the ONLY stylesheet that reaches the UI: `src/content.tsx`
+ * imports it with `?inline` and injects the resulting string as a <style> node
+ * inside the extension's shadow root. A plain `import './Foo.css'` from a .tsx
+ * component is therefore NOT enough — Vite extracts such imports into a
+ * separate `dist/assets/content.css` asset that nothing ever loads (verified by
+ * building). The per-component stylesheets are consequently pulled in by the
+ * `@import` list below, which Vite/PostCSS inline into this file *before*
+ * Tailwind runs, so their `@apply` directives resolve normally.
+ *
+ * CSS `@import` must precede every other rule, hence the ordering here.
+ * ------------------------------------------------------------------------ */
+
+/* Fonts. Injected into arbitrary third-party pages, so a restrictive host CSP
+ * may block these fetches. That is an accepted, graceful failure: the fallback
+ * stacks declared in tailwind.config.js take over. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* Per-component stylesheets (one per component — see FIND-027). */
+@import './components/CommandPaletteNew.css';
+@import './components/CommandPaletteHeader.css';
+@import './components/SearchResultItem.css';
+@import './components/CommandPaletteFooter.css';
+@import './components/InputDialog.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+ * Design tokens.
+ *
+ * `:host` is what actually matches here — inside a shadow root, `:root` refers
+ * to the *document* element and never matches, so a `:root`-only declaration
+ * would silently define nothing. `:host` matches `#steroid-host` and the custom
+ * properties inherit down into the React tree. `:root` is kept alongside it so
+ * the tokens also resolve if this sheet is ever used outside a shadow root.
+ *
+ * Dark mode keys off `prefers-color-scheme`: the palette only ever renders in
+ * its own isolated shadow root, so the OS-level signal is the only one
+ * available and the correct one to honour.
+ * ------------------------------------------------------------------------ */
+:root,
+:host {
+  --steroid-bg: #ffffff;
+  --steroid-surface: #f8f9fb;
+  --steroid-border: #e2e4e9;
+  --steroid-text: #1a1d23;
+  --steroid-text-muted: #6b7280;
+  --steroid-accent: #4f46e5;
+  --steroid-accent-soft: #eef2ff;
+  --steroid-selected: #ecfdf5;
+  --steroid-selected-border: #10b981;
+  --steroid-danger: #dc2626;
+  --steroid-danger-soft: #fef2f2;
+  --steroid-shadow: rgba(15, 23, 42, 0.16);
+  /* Scrim behind the modal cards; the one token added beyond the agreed set,
+   * so no raw color literal is left in a component stylesheet. */
+  --steroid-backdrop: rgba(15, 23, 42, 0.45);
+  /* Text drawn on top of a solid --steroid-accent fill. */
+  --steroid-on-accent: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root,
+  :host {
+    --steroid-bg: #16181d;
+    --steroid-surface: #1e2128;
+    --steroid-border: #2c3038;
+    --steroid-text: #f0f1f3;
+    --steroid-text-muted: #9aa0ab;
+    --steroid-accent: #818cf8;
+    --steroid-accent-soft: rgba(129, 140, 248, 0.14);
+    --steroid-selected: rgba(16, 185, 129, 0.14);
+    --steroid-selected-border: #34d399;
+    --steroid-danger: #f87171;
+    --steroid-danger-soft: rgba(248, 113, 113, 0.12);
+    --steroid-shadow: rgba(0, 0, 0, 0.45);
+    --steroid-backdrop: rgba(0, 0, 0, 0.6);
+    /* The dark accent is a light indigo; white-on-it fails contrast, so solid
+     * accent fills flip to dark ink. */
+    --steroid-on-accent: #16181d;
+  }
+}

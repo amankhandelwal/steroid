@@ -72,7 +72,6 @@ export function useKeyboardNavigation(props: UseKeyboardNavigationProps) {
         commandMode: props.commandMode,
         hasSelection: props.hasSelection,
         selectedCount: props.selectedCount,
-        isInputFocused: document.activeElement === inputRef.current,
         activeItemIndex: props.activeItemIndex,
         totalItems: props.totalItems
       });

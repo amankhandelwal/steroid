@@ -1,8 +1,18 @@
 /**
  * SearchResultItem - Individual search result item component
+ *
+ * Styles live in the sibling `SearchResultItem.css`. It is pulled into the
+ * bundle by `src/index.css`, which is the single stylesheet injected into the
+ * extension's shadow root (a direct `import './SearchResultItem.css'` here
+ * would be emitted as an unused `dist/assets/content.css`).
  */
 
 import type { SearchResultItem } from '../commands/CommandTypes';
+import { SpeakerIcon, PinIcon, FolderIcon, BoltIcon, CloseIcon } from './icons/Icons';
+
+/** Neutral placeholder shown when a tab has no favicon, or its favicon 404s. */
+const FALLBACK_FAVICON =
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
 
 interface SearchResultItemProps {
   item: SearchResultItem;
@@ -13,7 +23,16 @@ interface SearchResultItemProps {
   multiSelect: boolean;
   onSelect: (index: number) => void;
   onToggleSelection?: (tabId: number) => void;
+  onToggleGroupSelection?: (groupId: number) => void;
 }
+
+/** Build the row's class list from its highlight/selection state. */
+const buildRowClassName = (isActive: boolean, isSelected: boolean): string => {
+  const classNames = ['steroid-result-row'];
+  if (isActive) classNames.push('steroid-result-row--active');
+  if (isSelected) classNames.push('steroid-result-row--selected');
+  return classNames.join(' ');
+};
 
 const SearchResultItem = ({
   item,
@@ -23,15 +42,10 @@ const SearchResultItem = ({
   commandMode,
   multiSelect,
   onSelect,
-  onToggleSelection
+  onToggleSelection,
+  onToggleGroupSelection
 }: SearchResultItemProps) => {
-  let className = `p-3 cursor-pointer transition-all duration-150 border-l-4 ${
-    isActive ? 'bg-blue-50 border-l-blue-500 shadow-sm' : 'border-l-transparent hover:bg-gray-50'
-  }`;
-
-  if (isSelected) {
-    className += ' bg-green-50 border-l-green-500';
-  }
+  const className = buildRowClassName(isActive, isSelected);
 
   const handleClick = () => {
     onSelect(index);
@@ -44,86 +58,112 @@ const SearchResultItem = ({
     }
   };
 
+  const handleGroupCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (item.type === 'tabGroup' && onToggleGroupSelection) {
+      onToggleGroupSelection(item.group.id);
+    }
+  };
+
+  const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.src = FALLBACK_FAVICON;
+  };
+
   return (
     <div
+      id={`steroid-result-${index}`}
       data-item-index={index}
+      role="option"
+      aria-selected={isActive}
       className={className}
       onClick={handleClick}
     >
       {item.type === 'tab' && (
-        <div className="flex items-center gap-3">
+        <div className="steroid-result-content">
           {commandMode && multiSelect && (
             <input
               type="checkbox"
               checked={isSelected}
               onChange={handleCheckboxChange}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              aria-label={`Select tab: ${item.tab.title || 'Untitled'}`}
+              className="steroid-result-checkbox"
             />
           )}
           <img
-            src={item.tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>'}
+            src={item.tab.favIconUrl || FALLBACK_FAVICON}
             alt=""
-            className="w-4 h-4 flex-shrink-0"
-            onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
-            }}
+            className="steroid-result-favicon"
+            onError={handleFaviconError}
           />
-          <div className="min-w-0 flex-1">
-            <div className="font-medium text-gray-900 truncate">
+          <div className="steroid-result-text">
+            <div className="steroid-result-title">
               {item.tab.title || 'Untitled'}
             </div>
-            <div className="text-sm text-gray-500 truncate">
+            <div className="steroid-result-url">
               {item.tab.url}
             </div>
           </div>
           {item.tab.audible && (
-            <div className="text-blue-500 text-sm">🔊</div>
+            <div className="steroid-result-marker" role="img" aria-label="Playing audio">
+              <SpeakerIcon className="steroid-result-icon steroid-result-icon--accent" />
+            </div>
           )}
           {item.tab.pinned && (
-            <div className="text-orange-500 text-sm">📌</div>
+            <div className="steroid-result-marker" role="img" aria-label="Pinned">
+              <PinIcon className="steroid-result-icon steroid-result-icon--muted" />
+            </div>
           )}
         </div>
       )}
 
       {item.type === 'action' && (
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 flex-shrink-0 text-blue-500">⚡</div>
-          <div className="text-gray-900 font-medium">
+        <div className="steroid-result-content">
+          <BoltIcon className="steroid-result-icon steroid-result-icon--accent" />
+          <div className="steroid-result-title">
             {item.title}
           </div>
         </div>
       )}
 
       {item.type === 'closeTabAction' && (
-        <div className="flex items-center gap-3">
+        <div className="steroid-result-content">
           <img
-            src={item.tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>'}
+            src={item.tab.favIconUrl || FALLBACK_FAVICON}
             alt=""
-            className="w-4 h-4 flex-shrink-0"
-            onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
-            }}
+            className="steroid-result-favicon"
+            onError={handleFaviconError}
           />
-          <div className="min-w-0 flex-1">
-            <div className="font-medium text-gray-900 truncate">
+          <div className="steroid-result-text">
+            <div className="steroid-result-title">
               Close: {item.tab.title || 'Untitled'}
             </div>
-            <div className="text-sm text-gray-500 truncate">
+            <div className="steroid-result-url">
               {item.tab.url}
             </div>
           </div>
-          <div className="text-red-500 text-sm">✕</div>
+          <div className="steroid-result-marker">
+            <CloseIcon className="steroid-result-icon steroid-result-icon--danger" />
+          </div>
         </div>
       )}
 
       {item.type === 'tabGroup' && (
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 flex-shrink-0 text-purple-500">📁</div>
-          <div className="min-w-0 flex-1">
-            <div className="text-gray-900 font-medium truncate">
+        <div className="steroid-result-content">
+          {commandMode && multiSelect && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={handleGroupCheckboxChange}
+              aria-label={`Select group: ${item.title}`}
+              className="steroid-result-checkbox"
+            />
+          )}
+          <FolderIcon className="steroid-result-icon steroid-result-icon--accent" />
+          <div className="steroid-result-text">
+            <div className="steroid-result-title">
               {item.title}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="steroid-result-subtitle">
               Tab Group
             </div>
           </div>

@@ -4,6 +4,7 @@
 
 import { BaseCommand } from './BaseCommand';
 import { CommandContext, SearchResultItem, CommandExecutionContext, CommandExecutionResult } from './CommandTypes';
+import type { ExtensionMessage } from '../types/messages';
 
 export class SmartGroupCommand extends BaseCommand {
   readonly id = 'smart_group';
@@ -25,7 +26,8 @@ export class SmartGroupCommand extends BaseCommand {
 
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'SMART_GROUP_TABS' }, (response) => {
+      const message: ExtensionMessage = { type: 'SMART_GROUP_TABS' };
+      chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           resolve({
             success: false,
