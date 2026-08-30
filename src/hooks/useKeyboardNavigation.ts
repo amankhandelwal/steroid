@@ -3,10 +3,19 @@
  */
 
 import { useEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 import { createKeybindingSystem } from '../keybindings';
 import type { NavigationActions, SelectionActions } from '../keybindings';
 
 export interface UseKeyboardNavigationProps {
+  /**
+   * The palette's root element — every key event from the palette bubbles
+   * through it. Listening here rather than on `document` is required: key
+   * events are sealed at the shadow host (`sealKeyEventsAtHost`) so they never
+   * reach the page's hotkey handlers, which means they never reach `document`
+   * for us either.
+   */
+  containerRef: RefObject<HTMLElement | null>;
   isModalOpen: boolean;
   commandMode: boolean;
   hasSelection: boolean;
@@ -80,12 +89,14 @@ export function useKeyboardNavigation(props: UseKeyboardNavigationProps) {
       keybindingSystemRef.current?.manager.handleKeyEvent(event);
     };
 
-    // Add event listener
-    document.addEventListener('keydown', handleKeyDown);
+    // Add event listener. React attaches refs during commit, before effects run,
+    // so the container is already available on the first pass.
+    const container = props.containerRef.current;
+    container?.addEventListener('keydown', handleKeyDown);
 
     // Cleanup
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      container?.removeEventListener('keydown', handleKeyDown);
       keybindingSystemRef.current?.destroy();
     };
   }, [props]);

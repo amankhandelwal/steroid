@@ -1,5 +1,6 @@
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { sealKeyEventsAtHost } from "./content/eventContainment";
 import styleText from "./index.css?inline"; // Import CSS as a string
 
 const HOST_ELEMENT_ID = "steroid-host";
@@ -24,6 +25,13 @@ function mountSteroid(): void {
 
   // Attach Shadow DOM
   const shadowRoot = host.attachShadow({ mode: "open" });
+
+  // Keystrokes made inside the palette are `composed`, so they escape the shadow
+  // root and reach the page's own hotkey handlers (retargeted to this host, which
+  // reads to them as a non-form-field element). Seal them at the boundary. The
+  // seal is inert while the palette is closed — an empty shadow tree emits no key
+  // events — so it needs no open/closed state of its own.
+  sealKeyEventsAtHost(host);
 
   // Create a div for the React app inside the Shadow DOM
   const rootDiv = document.createElement("div");

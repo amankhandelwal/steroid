@@ -9,6 +9,7 @@
 import { useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
+import { useFocusContainment } from '../hooks/useFocusContainment';
 import { commandRegistry } from '../commands';
 import type {
   TabItem,
@@ -30,6 +31,9 @@ interface CommandPaletteProps {
 
 const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+  // Palette root: the keyboard listener and the focus guard both hang off it, so
+  // neither has to reach up to `document` (see `useKeyboardNavigation`).
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   const {
     // State
@@ -239,6 +243,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
   // Keyboard navigation setup
   const { inputRef } = useKeyboardNavigation({
+    containerRef: backdropRef,
     isModalOpen: true,
     commandMode,
     hasSelection,
@@ -266,6 +271,10 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Keep focus in the palette for as long as it is open: a page that steals focus
+  // would otherwise receive keystrokes directly, bypassing the shadow-host seal.
+  useFocusContainment(backdropRef, () => inputRef.current?.focus());
 
   // Manage cursor position when search results change
   // Preserve position for selection toggles (length ±1), reset for query changes
@@ -306,7 +315,7 @@ const CommandPalette = ({ onClose }: CommandPaletteProps) => {
 
 
   return (
-    <div className="steroid-palette-backdrop">
+    <div ref={backdropRef} className="steroid-palette-backdrop">
       <div className="steroid-palette-card">
         <CommandPaletteHeader
           ref={inputRef}
