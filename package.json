@@ -1,11 +1,12 @@
 {
   "name": "steroid",
   "version": "1.0.0",
-  "description": "Chrome extension to run \"Chrome on Steroid\"",
+  "description": "A command palette for Chrome. Press Shift+Shift to search tabs, run commands and manage tab groups.",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "package": "npm run build && cd dist && zip -qr \"../steroid-$npm_package_version.zip\" . -x '*.DS_Store' && echo \"packaged steroid-$npm_package_version.zip\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -14,9 +15,15 @@
     "type": "git",
     "url": "git+https://github.com/amankhandelwal/steroid.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "chrome-extension",
+    "command-palette",
+    "tab-management",
+    "productivity",
+    "keyboard-shortcuts"
+  ],
+  "author": "Aman Khandelwal",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/amankhandelwal/steroid/issues"
   },

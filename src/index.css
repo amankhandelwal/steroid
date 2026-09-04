@@ -13,11 +13,9 @@
  * CSS `@import` must precede every other rule, hence the ordering here.
  * ------------------------------------------------------------------------ */
 
-/* Fonts. Injected into arbitrary third-party pages, so a restrictive host CSP
- * may block these fetches. That is an accepted, graceful failure: the fallback
- * stacks declared in tailwind.config.js take over. */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+/* Fonts. Self-hosted and inlined as base64 at build time — nothing is fetched
+ * from a third party at runtime. See src/styles/fonts.css for the rationale. */
+@import './styles/fonts.css';
 
 /* Per-component stylesheets (one per component — see FIND-027). */
 @import './components/CommandPaletteNew.css';

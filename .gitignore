@@ -14,3 +14,9 @@ yarn-error.log*
 
 # Captured extension logs (local debugging artefacts — may contain tab titles/URLs)
 logs/
+
+# macOS metadata
+.DS_Store
+
+# Store submission package
+steroid-*.zip

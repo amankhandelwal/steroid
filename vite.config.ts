@@ -6,6 +6,13 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   build: {
+    // Force the vendored .woff2 faces referenced by src/styles/fonts.css to be
+    // emitted as base64 data: URIs rather than as separate asset files. The
+    // stylesheet is injected as a raw string into a shadow root on third-party
+    // pages, where a relative asset URL would resolve against the host page's
+    // origin and 404. Largest font is ~31 KB; 64 KB leaves headroom without
+    // silently inlining anything substantial that gets added later.
+    assetsInlineLimit: 64 * 1024,
     rollupOptions: {
       input: {
         background: resolve(__dirname, 'src/background.ts'),

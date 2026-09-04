@@ -56,6 +56,30 @@ We welcome contributions! If you want to develop and contribute to Steroid, here
     ```
     This command starts Vite in watch mode. Any changes you make to the source code will be automatically rebuilt. To see your changes, you may need to reload the extension from the `chrome://extensions` page.
 
+3.  **Build a store package**:
+    ```bash
+    npm run package
+    ```
+    Builds and writes `steroid-<version>.zip` with `manifest.json` at the archive root, which is the
+    layout the Chrome Web Store requires.
+
+4.  **Regenerate image assets** (icons and store screenshots) after changing `src/assets/icon.png` or
+    adding a capture to `screenshots/`. This uses [PixelFit](https://github.com/amankhandelwal/PixelFit),
+    checked out alongside this repo:
+    ```bash
+    cd ../PixelFit && PYTHONPATH=. uv run python ../steroid/scripts/generate-store-assets.py
+    ```
+
+## Privacy
+
+Steroid has no server, no analytics and no telemetry. Everything runs locally in your browser.
+
+The single exception is opt-in: the **Smart Group** command sends your tab titles and URLs to OpenAI
+using an API key you supply yourself. If you never set a key, Steroid makes no network requests at
+all — the two webfonts it uses are bundled in the extension rather than fetched from a CDN.
+
+Full details in [PRIVACY.md](PRIVACY.md).
+
 ## Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
