@@ -141,25 +141,29 @@ loaded afterwards, so without this the palette would not open on any pre-existin
 reloaded it. It injects only the extension's own bundled content.js and never remote code.
 ```
 
-**Host permission `https://api.openai.com/*`**
+**Host permission justification** — one field, covering both `https://api.openai.com/*` and the
+`<all_urls>` content script
+
+> The console derives these boxes from the manifest and offers a *single* host permission field. It
+> does not raise a separate one for `content_scripts[0].matches`, because a match pattern is not a
+> declared host permission — so the `<all_urls>` rationale has to go in here too. Both halves matter
+> to a reviewer: one explains an outbound request, the other explains presence on every page.
 
 ```
-Used only by the optional Smart Group command. When the user explicitly runs it, the extension sends
-the titles and URLs of their open tabs to the OpenAI chat completions API, authenticated with an API
-key the user supplies themselves, and receives back a suggested grouping. There is one additional
-request to validate the key when it is first saved. No request is made to this host unless the user
-has set a key and invoked the command.
-```
+This extension requests host access for two distinct reasons.
 
-**Broad host access (`<all_urls>` content script)**
+https://api.openai.com/* is used only by the optional Smart Group command. When the user explicitly
+runs it, the extension sends the titles and URLs of their open tabs to the OpenAI chat completions
+API, authenticated with an API key the user supplies themselves, and receives back a suggested
+grouping. There is one additional request to validate that key when it is first saved. No request is
+made to this host unless the user has set a key and invoked the command.
 
-```
-The palette is summoned with Shift+Shift on whatever page the user is currently looking at, so the
-script that listens for that shortcut and renders the palette must be present on all sites. Its
-scope on the page is deliberately minimal: it attaches an isolated Shadow DOM host, listens for the
-shortcut, and draws the palette UI. It does not read page content, the DOM, cookies, form data or
-network traffic, and it transmits nothing about the pages the user visits. The extension has no
-server to transmit to.
+The content script matches <all_urls> because the palette is summoned with Shift+Shift on whatever
+page the user is currently looking at, so the script that listens for that shortcut and renders the
+palette must be present on all sites. Its scope on the page is deliberately minimal: it attaches an
+isolated Shadow DOM host, listens for the shortcut, and draws the palette UI. It does not read page
+content, the DOM, cookies, form data or network traffic, and it transmits nothing about the pages the
+user visits. The extension has no server to transmit anything to.
 ```
 
 **Remote code**
