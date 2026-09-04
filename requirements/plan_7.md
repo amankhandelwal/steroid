@@ -181,14 +181,22 @@ description, single-purpose statement, a justification for each of the five perm
       the data URIs are present, but nobody has loaded the unpacked extension and confirmed the
       palette still renders in Space Grotesk / JetBrains Mono. Worth one reload of `dist/` and a
       Shift+Shift on any page.
-- [ ] **Inline search-engine prefixes disagree with the suggestion rows.** `SearchCommand.execute()`
-      (`src/commands/SearchCommand.ts:90-105`) parses an engine out of the first word of the argument,
-      so `s gh cats` searches GitHub for "cats". But `buildEngineResults()` builds its rows from the
-      raw argument, so the same query renders eight rows reading `Search "gh cats" on Google`,
-      `… on DuckDuckGo`, and so on — the prefix is shown as part of the search text and the engine it
-      names is ignored. Picking a row therefore does something different from executing the command.
-      Not fixed here: out of scope for the release plan, and which of the two behaviours is the
-      intended one is a product call. Documented in the README as "type `s <query>`, then choose an
-      engine", which is the path that behaves consistently.
+- [ ] **`SearchCommand.execute()`'s dead engine-prefix parser — removed, awaiting your check.** Verified unreachable
+      before deleting: `command.execute()` has exactly one production call site
+      (`CommandRegistry.executeCommand`, `src/commands/CommandRegistry.ts:68`), reached from three
+      places, all closed for this command. `handleActionItem`
+      (`src/components/CommandPaletteNew.tsx:111`) dispatches to the registry only for row ids ending
+      `-suggestion`, and `SearchCommand` emits exactly one id shape, `search-engine-<shortcut>`;
+      command mode is entered only for `mode === 'CommandMode'` commands, and this one is
+      `SingleExecution`; the pending-input path re-enters a command whose `execute` already ran once,
+      which this one cannot. `getSearchResults` is likewise gated behind `currentCommand && commandMode`
+      (`src/hooks/useCommandPalette.ts:177`).
+
+      `execute` and `getSearchResults` are abstract on `BaseCommand`, so neither method could simply
+      be removed. `execute` now searches the default engine with the whole argument — the one
+      unsurprising behaviour if that routing ever changes — and the prefix parsing that contradicted
+      the on-screen rows is gone. Five tests added: three on `execute`'s behaviour, two locking the
+      structural facts that keep it unreachable. The regression guard was mutation-tested by
+      re-introducing the parser, which failed exactly the intended test and nothing else.
 
 - [ ] Add Issues here

@@ -74,40 +74,44 @@ export class SearchCommand extends BaseCommand {
     return this.buildEngineResults(this.extractArgument(context.query));
   }
 
+  /**
+   * Contract-only implementation. The UI never routes this command through
+   * `CommandRegistry.executeCommand`: the engine rows built above carry ids of
+   * the form `search-engine-<shortcut>`, and `handleActionItem` dispatches to
+   * the registry only for ids ending `-suggestion` — every other action row
+   * runs its own closure instead. The two other routes into the registry are
+   * closed too: command mode is only entered for `mode === 'CommandMode'`
+   * commands, and the pending-input path re-enters a command whose `execute`
+   * has already run once.
+   *
+   * So this exists to satisfy `BaseCommand`'s abstract member, and does the one
+   * unsurprising thing if that routing ever changes — search the whole argument
+   * on the default engine.
+   *
+   * It deliberately does NOT parse a leading engine shortcut (`s gh cats` ->
+   * GitHub). That parsing used to live here and was unreachable, so nothing
+   * exercised the fact that it disagreed with the rows on screen, which render
+   * `Search "gh cats" on Google` for the same query. Picking an engine is the
+   * rows' job.
+   */
   async execute(context: CommandExecutionContext): Promise<CommandExecutionResult> {
-    const argument = this.extractArgument(context.query);
+    const argument = this.extractArgument(context.query).trim();
 
-    if (!argument.trim()) {
+    if (!argument) {
       return {
         success: false,
         error: 'Please provide a search query'
       };
     }
 
-    // Determine which search engine to use
-    let searchEngine: SearchEngine = SEARCH_ENGINES[0]; // Default to Google
+    const [defaultEngine] = SEARCH_ENGINES;
 
-    // Check if user specified a search engine
-    const parts = argument.split(' ');
-    const firstPart = parts[0].toLowerCase();
-
-    const specifiedEngine = SEARCH_ENGINES.find(engine =>
-      engine.shortcut.toLowerCase() === firstPart ||
-      engine.name.toLowerCase() === firstPart
+    return this.openSearchUrl(
+      defaultEngine.url + encodeURIComponent(argument),
+      argument,
+      defaultEngine.name,
+      context
     );
-
-    if (specifiedEngine && parts.length > 1) {
-      searchEngine = specifiedEngine;
-      // Remove the engine name from the query
-      const searchQuery = parts.slice(1).join(' ');
-      const searchUrl = searchEngine.url + encodeURIComponent(searchQuery);
-
-      return this.openSearchUrl(searchUrl, searchQuery, searchEngine.name, context);
-    } else {
-      // Use Google as default
-      const searchUrl = searchEngine.url + encodeURIComponent(argument);
-      return this.openSearchUrl(searchUrl, argument, searchEngine.name, context);
-    }
   }
 
   private openSearchUrl(
