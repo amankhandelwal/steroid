@@ -181,4 +181,14 @@ description, single-purpose statement, a justification for each of the five perm
       the data URIs are present, but nobody has loaded the unpacked extension and confirmed the
       palette still renders in Space Grotesk / JetBrains Mono. Worth one reload of `dist/` and a
       Shift+Shift on any page.
+- [ ] **Inline search-engine prefixes disagree with the suggestion rows.** `SearchCommand.execute()`
+      (`src/commands/SearchCommand.ts:90-105`) parses an engine out of the first word of the argument,
+      so `s gh cats` searches GitHub for "cats". But `buildEngineResults()` builds its rows from the
+      raw argument, so the same query renders eight rows reading `Search "gh cats" on Google`,
+      `… on DuckDuckGo`, and so on — the prefix is shown as part of the search text and the engine it
+      names is ignored. Picking a row therefore does something different from executing the command.
+      Not fixed here: out of scope for the release plan, and which of the two behaviours is the
+      intended one is a product call. Documented in the README as "type `s <query>`, then choose an
+      engine", which is the path that behaves consistently.
+
 - [ ] Add Issues here

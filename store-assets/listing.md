@@ -57,9 +57,10 @@ TAB AND WINDOW MANAGEMENT
 • Smart Group (optional): organises your open tabs into named groups and windows for you
 
 SEARCH AND NAVIGATE
-• Type "g " for Google, or use DuckDuckGo, Bing, YouTube, GitHub, Stack Overflow, Wikipedia, Reddit
-• Paste or type a URL and press Enter to open it
-• Search engines are configurable
+• Type "s" followed by your query, then pick where to send it — Google, DuckDuckGo, Bing, YouTube,
+  GitHub, Stack Overflow, Wikipedia or Reddit
+• Paste or type a URL and press Enter to open it in a new tab
+• The engine list is configurable
 
 BUILT TO STAY OUT OF THE WAY
 • The palette lives in an isolated Shadow DOM, so it can't be restyled or broken by the page

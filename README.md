@@ -9,14 +9,60 @@ A command palette for your browser, inspired by the power-user workflows of tool
 
 ## Features
 
--   **Command Palette**: Press `Shift+Shift` on any page to open the command palette.
--   **Fuzzy Tab Search**: Instantly search through all your open tabs by title or URL.
--   **Tab Management**:
-    -   Switch to any tab without leaving the keyboard.
-    -   Close tabs directly from the search results.
--   **Quick Actions**:
-    -   **Google Search**: Type `g ` or `google ` followed by your query to start a search.
-    -   **Open URL**: Type a URL and hit enter to open it in a new tab.
+Press `Shift+Shift` on any page to open the palette. Start typing to fuzzy-search your open tabs by
+title or URL; results are ordered by how recently you visited each tab, so the one you want is
+usually already first. Commands appear in the same list once you start typing.
+
+The palette renders in its own Shadow DOM and swallows the keystrokes you type into it, so a site's
+own single-letter hotkeys (GitHub's `s`, `t`, `g c`) won't fire behind it.
+
+### Commands
+
+Every command is matched on any of its aliases, so type whichever you remember.
+
+| Command | Type | What it does |
+| --- | --- | --- |
+| **Search** | `search`, `s`, `find` | Lists every configured search engine for your query — arrow to one and press Enter |
+| **Open** | `open`, `url`, `navigate` | Opens a URL in a new tab |
+| **New Tab** | `new tab`, `new`, `nt`, `tab` | Opens a new tab in the current window |
+| **Previous Tab** | `previous`, `prev`, `previous tab`, `prev tab` | Jumps back to the last active tab, showing its title before you commit |
+| **Close Current Tab** | `close current`, `current` | Closes the active tab |
+| **Close Tabs** | `close tabs`, `close multiple`, `multi close` | Multi-select several tabs, then close them together |
+| **Close Duplicate Tabs** | `close duplicates`, `duplicate` | Keeps one copy of each unique URL, closes the rest |
+| **Group Tabs** | `group tabs`, `group`, `create group` | Multi-select tabs and put them in a named group |
+| **Delete Tab Group** | `delete group`, `ungroup`, `remove group` | Dissolves one group; its tabs stay open |
+| **Ungroup All Tabs** | `ungroup all`, `remove all groups`, `disband` | Dissolves every group across all windows |
+| **Smart Group Tabs (AI)** | `smart group`, `ai group`, `auto group`, `smart` | Sorts your tabs into named groups and windows using OpenAI — needs an API key |
+| **Set OpenAI API Key** | `api key`, `openai`, `settings` | Stores your own OpenAI key locally, for Smart Group |
+
+Search engines are configured in [`src/config/searchEngines.json`](src/config/searchEngines.json) —
+Google, DuckDuckGo, Bing, YouTube, GitHub, Stack Overflow, Wikipedia and Reddit ship by default, and
+adding your own is a matter of a name, a query URL and a shortcut.
+
+### Keyboard reference
+
+| Key | Action |
+| --- | --- |
+| `Shift` `Shift` | Open the palette |
+| `↑` / `↓` | Move through results |
+| `Home` / `End` | Jump to first / last result |
+| `PageUp` / `PageDown` | Move a page at a time |
+| `Enter` | Switch to the highlighted tab, or run the highlighted command |
+| `` ` `` | Close the highlighted tab, leaving the palette open |
+| `Tab` | Enter command mode for the highlighted command |
+| `Esc` | Leave command mode, or close the palette |
+| `Ctrl`+`A` | Select all *(command mode)* |
+| `Ctrl`+`D` or `Delete` | Clear selection *(command mode)* |
+| `Shift`+`Enter` or `Ctrl`+`Enter` | Run the command on the current selection *(command mode)* |
+
+Typing at any point returns focus to the search box, so you never have to reach back up to it.
+
+### Where it works
+
+The palette opens on ordinary web pages. Chrome forbids extensions from running on its own internal
+pages, so `Shift+Shift` does nothing on the New Tab page, `chrome://` pages, the Chrome Web Store, or
+other extensions' pages — no extension can work around that. For `file:///` URLs, enable
+"Allow access to file URLs" on the extension's Details page in `chrome://extensions`.
 
 ## Getting Started
 
