@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { syncManifestVersion } from './scripts/sync-manifest-version';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), syncManifestVersion(__dirname)],
   build: {
     // Force the vendored .woff2 faces referenced by src/styles/fonts.css to be
     // emitted as base64 data: URIs rather than as separate asset files. The

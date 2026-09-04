@@ -3,6 +3,7 @@
   "name": "Steroid",
   "version": "1.0.0",
   "description": "A command palette for Chrome, inspired by IntelliJ's Shift+Shift.",
+  "minimum_chrome_version": "100",
   "permissions": [
     "tabs",
     "scripting",
@@ -18,8 +19,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {

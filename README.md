@@ -63,6 +63,10 @@ We welcome contributions! If you want to develop and contribute to Steroid, here
     Builds and writes `steroid-<version>.zip` with `manifest.json` at the archive root, which is the
     layout the Chrome Web Store requires.
 
+    To release a new version, bump `version` in **`package.json` only** — the build writes it into
+    `dist/manifest.json`, and the archive is named from that, so the label and the manifest can never
+    disagree.
+
 4.  **Regenerate image assets** (icons and store screenshots) after changing `src/assets/icon.png` or
     adding a capture to `screenshots/`. This uses [PixelFit](https://github.com/amankhandelwal/PixelFit),
     checked out alongside this repo:

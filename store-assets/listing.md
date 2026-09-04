@@ -67,6 +67,15 @@ BUILT TO STAY OUT OF THE WAY
   own hotkeys behind it
 • Follows your system's light and dark mode
 
+WHERE IT WORKS, AND WHERE IT CAN'T
+Steroid opens on ordinary web pages. Chrome does not allow any extension to run on its own internal
+pages, so Shift+Shift will not work on the New Tab page, on chrome:// pages such as Settings or
+History, on the Chrome Web Store, or on other extensions' pages. This is a browser restriction, not
+a bug, and no extension can work around it — switch to any normal tab and the palette is there.
+
+Local files (file:/// URLs) need one extra step: open chrome://extensions, click Details on Steroid,
+and turn on "Allow access to file URLs".
+
 ABOUT YOUR DATA
 Steroid has no server, no analytics, no telemetry and no ads. Your tabs and your browsing stay on
 your machine.

@@ -126,8 +126,41 @@ bundled it was rewritten to state positively that no font host is contacted.
 Manifest declares 16/32/48/128 and the inert `content_scripts[0].type: "module"` key is gone.
 `package.json` is MIT with an author and real keywords. `npm run package` builds and emits
 `steroid-<version>.zip` with `manifest.json` at the archive root — verified with `unzip -l`; the
-package is 377 KB across 8 files. `.DS_Store` was being copied out of `public/` into `dist/` and into
-the zip; it is deleted and now gitignored, along with the generated zips.
+archive is 165 KB (377 KB uncompressed) across 8 files. `.DS_Store` was being copied out of `public/`
+into `dist/` and into the zip; it is deleted and now gitignored, along with the generated zips.
+
+## Follow-up round (post-review)
+
+Three items raised after the first pass, all done.
+
+**Version drift is now impossible, not merely guarded.** Chrome reads the version from
+`manifest.json`; the archive was previously named from `package.json`. Bumping one and forgetting
+the other would have produced `steroid-1.0.1.zip` containing a `1.0.0` manifest, which the store
+rejects as "version already exists" — a confusing error for what is a typo. `package.json` is now
+the single source of truth: `scripts/sync-manifest-version.ts` (a build plugin, running on
+`closeBundle` so it lands *after* Vite copies `publicDir`) writes that version into
+`dist/manifest.json`, and `scripts/package-extension.mjs` names the archive from the built manifest
+rather than from `package.json`. The label and the contents therefore cannot disagree.
+
+Verified end to end by bumping `package.json` to 1.0.1 alone, leaving `public/manifest.json` at
+1.0.0: the build reported the sync, `dist/manifest.json` came out 1.0.1, and the archive was named
+`steroid-1.0.1.zip`. Reverted afterwards.
+
+The packaging script also replaced the inline shell one-liner, which had a latent bug: `zip` appends
+to an existing archive rather than replacing it, so any file deleted since the previous package would
+have been carried silently into the next upload. It now removes the archive first.
+
+**`minimum_chrome_version: "100"`.** A deliberate margin rather than a computed floor — the binding
+constraints are `chrome.tabGroups` (89), ES-module service workers (91) and
+`chrome.scripting.executeScript`'s `func` parameter (93). Chrome 100 shipped in March 2022, so the
+margin costs essentially no real users and avoids asserting a precise minimum that has not been
+tested against an actual old build.
+
+**Listing now pre-empts the "doesn't work" reviews.** The palette cannot open on the New Tab page,
+`chrome://` pages, the Web Store or other extensions' pages, because Chrome runs no content script
+there — the single most common source of one-star reviews for palette extensions. The detailed
+description in `store-assets/listing.md` now says so plainly, and explains the "Allow access to file
+URLs" toggle needed for `file:///` tabs.
 
 ## Listing copy (D3, D4, D5)
 
